@@ -1,0 +1,13 @@
+# Keine temporären Dateien
+*.log
+*.tmp
+
+# Keine kubeconfigs
+.kube/
+config
+kubeconfig*
+
+# Keine IDE/Editor-Dateien
+.vscode/
+.idea/
+*.swp

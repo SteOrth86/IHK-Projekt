@@ -1,0 +1,54 @@
+global:
+  storageClass: standard
+
+wordpressUsername: admin
+wordpressPassword: admin123
+wordpressEmail: admin@example.com
+wordpressBlogName: "IHK Demo Blog"
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hostname: wp.local
+  pathType: Prefix
+  annotations: {}
+  extraHosts: []
+  tls: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+persistence:
+  enabled: true
+  size: 5Gi
+  accessModes:
+    - ReadWriteOnce
+
+mariadb:
+  enabled: true
+  auth:
+    rootPassword: "root123"
+    username: "bn_wordpress"
+    password: "wpdb123"
+    database: "bitnami_wordpress"
+  primary:
+    persistence:
+      enabled: true
+      size: 5Gi
+      accessModes:
+        - ReadWriteOnce
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
