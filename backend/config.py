@@ -17,9 +17,12 @@ DATA_DIR.mkdir(exist_ok=True)
 # JSON-Datei für Instanzen
 INSTANCES_FILE = DATA_DIR / "instances.json"
 
-# Pfade zu deinen Skripten im scripts-Ordner:
+# Pfade zu den Skripten im scripts-Ordner:
 WP_PROVISION_SCRIPT = SCRIPTS_DIR / "provision_wp.sh"
 WP_DELETE_SCRIPT = SCRIPTS_DIR / "delete_wp.sh"
+
+ODOO_PROVISION_SCRIPT = SCRIPTS_DIR / "provision_odoo.sh"
+ODOO_DELETE_SCRIPT = SCRIPTS_DIR / "delete_odoo.sh"
 
 # Optionaler API-Key
 API_KEY = os.getenv("BACKEND_API_KEY")
