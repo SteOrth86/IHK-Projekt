@@ -11,12 +11,17 @@ SLUG="$1"
 NS="odoo-${SLUG}"
 RELEASE="odoo-${SLUG}"
 
-echo ">>> [STUB] Odoo-Instanz löschen"
+echo ">>> Lösche Odoo-Instanz"
 echo "    Slug:      ${SLUG}"
 echo "    Namespace: ${NS}"
 echo "    Release:   ${RELEASE}"
 echo
-echo ">>> Hinweis: Dieses Skript ist noch nicht implementiert (nur Stub)."
 
-# später: helm uninstall + namespace delete
-exit 1
+echo ">>> Helm-Release entfernen (falls vorhanden)..."
+helm uninstall "${RELEASE}" --namespace "${NS}" || echo "Helm-Release nicht gefunden, fahre fort..."
+
+echo ">>> Namespace löschen (falls vorhanden)..."
+kubectl delete namespace "${NS}" --ignore-not-found
+
+echo
+echo ">>> Löschen abgeschlossen."
