@@ -1,0 +1,39 @@
+# k8s/minikube/odoo-values.yaml
+# Basis-Konfiguration für Odoo auf Minikube (Bitnami-Helmchart)
+
+## Admin-Zugang für Odoo Web-UI
+odooEmail: "admin@example.local"
+odooPassword: "admin123"  # nur für Minikube-Tests
+
+## Ingress für Minikube
+ingress:
+  enabled: true
+  hostname: odoo.local        # wird später vom Skript pro Instanz überschrieben
+  ingressClassName: nginx     # Minikube-Ingress
+  path: /
+  pathType: ImplementationSpecific
+  annotations: {}
+  tls: false                  # auf Minikube erstmal kein echtes TLS
+
+## Service-Typ
+service:
+  type: ClusterIP             # Zugriff über Ingress, kein NodePort nötig
+
+## Persistenz für Odoo-Daten
+persistence:
+  enabled: true
+  size: 2Gi
+  storageClass: ""            # "" = Standard-StorageClass von Minikube
+
+## Eingebaute PostgreSQL-DB (für Minikube ok)
+postgresql:
+  enabled: true
+  auth:
+    username: bn_odoo
+    password: odoo_db_password
+    database: bitnami_odoo
+  primary:
+    persistence:
+      enabled: true
+      size: 1Gi
+      storageClass: ""        # ebenfalls Standard-StorageClass
