@@ -7,8 +7,7 @@ from storage import store, Instance
 from k8s_status import get_namespace_status
 
 from routers.wordpress import router as wp_router
-# Odoo-Router kommt später dazu: from routers.odoo import router as odoo_router
-
+from routers.odoo import router as odoo_router
 
 app = FastAPI(
     title="IHK-Projekt Backend",
@@ -18,7 +17,7 @@ app = FastAPI(
 
 # Router registrieren
 app.include_router(wp_router, tags=["wordpress"])
-# app.include_router(odoo_router, tags=["odoo"])  # später
+app.include_router(odoo_router, tags=["odoo"])
 
 
 @app.get("/health")
