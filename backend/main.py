@@ -1,22 +1,32 @@
 # main.py
 from datetime import datetime
+
 from pathlib import Path
 
 import subprocess
+
 from fastapi import FastAPI, HTTPException, Depends
+
 from pydantic import BaseModel
+
 from typing import List
 
-from config import WP_PROVISION_SCRIPT, WP_DELETE_SCRIPT, INSTANCES_FILE
-from storage import InstanceStore, Instance
+from config import (
+    WP_PROVISION_SCRIPT,
+    WP_DELETE_SCRIPT,
+    ODOO_PROVISION_SCRIPT,
+    ODOO_DELETE_SCRIPT,
+)
+from storage import Instance, store
+
 from k8s_status import get_namespace_status
+
 from auth import verify_api_key
 
 # FastAPI-App
+
 app = FastAPI(title="IHK-Projekt Backend – Provisionierung")
 
-# Globale Instanz des Stores
-store = InstanceStore(INSTANCES_FILE)
 
 # ---------- Request/Response-Modelle ----------
 

@@ -80,3 +80,6 @@ class InstanceStore:
         # wenn nicht gefunden, neu anlegen
         self._instances.append(instance)
         self.save()
+
+# Globaler Store, den alle Module (main + Router) benutzen
+store = InstanceStore(INSTANCES_FILE)
