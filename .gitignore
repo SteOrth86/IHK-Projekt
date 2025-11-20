@@ -11,3 +11,16 @@ kubeconfig*
 .vscode/
 .idea/
 *.swp
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Backend-venv
+backend/.venv/
+
+# Laufzeitdaten (Persistenz)
+backend/data/instances.json
+
+# Backup-/Test-Datei
+backend/main2.py
