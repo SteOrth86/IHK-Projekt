@@ -20,13 +20,27 @@ echo "    Release:    ${RELEASE}"
 echo "    Hostname:   ${HOST}"
 echo
 
-# Namespace wird von Helm auch erstellt, aber so ist es explizit
+# Verzeichnisse relativ zum Skript bestimmen
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+VALUES_FILE="${PROJECT_ROOT}/k8s/minikube/wp-values.yaml"
+
+if [ ! -f "${VALUES_FILE}" ]; then
+  echo "Fehler: Values-Datei nicht gefunden: ${VALUES_FILE}" >&2
+  exit 1
+fi
+
+echo ">>> Verwende Values-Datei: ${VALUES_FILE}"
+echo
+
+# Namespace explizit anlegen (falls nicht vorhanden)
 kubectl get ns "${NS}" >/dev/null 2>&1 || kubectl create namespace "${NS}"
 
+# WICHTIG: Hier NUR das VALUES_FILE verwenden, NICHT 'wp-values.yaml'
 helm install "${RELEASE}" bitnami/wordpress \
   -n "${NS}" \
   --create-namespace \
-  -f wp-values.yaml \
+  -f "${VALUES_FILE}" \
   --set ingress.hostname="${HOST}"
 
 echo
