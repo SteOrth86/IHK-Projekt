@@ -4,14 +4,14 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from ..auth import verify_api_key
-from ..storage import store, Instance
-from ..services.wordpress import (
+from auth import verify_api_key
+from storage import store, Instance
+from services.wordpress import (
     create_wordpress_instance,
     delete_wordpress_instance,
 )
-from ..schemas.errors import ErrorResponse
-from ..utils.commands import ScriptError
+from schemas.errors import ErrorResponse
+from utils.commands import ScriptError
 
 router = APIRouter(
     prefix="/instances/wp",

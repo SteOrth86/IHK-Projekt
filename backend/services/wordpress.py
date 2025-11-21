@@ -3,10 +3,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from .. import config
-from ..storage import Instance, InstanceStore
-from ..utils.commands import run_script, ScriptError
-
+import config
+from storage import Instance, InstanceStore
+from utils.commands import run_script, ScriptError
 
 def _now_iso() -> str:
     """Hilfsfunktion: aktueller Zeitpunkt als ISO-8601-String in UTC."""
