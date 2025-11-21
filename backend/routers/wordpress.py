@@ -1,140 +1,111 @@
-from datetime import datetime
-from pathlib import Path
-import subprocess
-from typing import List
+# backend/routers/wordpress.py
+from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from config import WP_PROVISION_SCRIPT, WP_DELETE_SCRIPT
-from storage import store, Instance
-from k8s_status import get_namespace_status
-from auth import verify_api_key
+from ..auth import verify_api_key
+from ..storage import store, Instance
+from ..services.wordpress import (
+    create_wordpress_instance,
+    delete_wordpress_instance,
+)
+from ..schemas.errors import ErrorResponse
+from ..utils.commands import ScriptError
 
-router = APIRouter()
-
-
-class CreateWpRequest(BaseModel):
-    slug: str   # z.B. "demo1"
-    domain: str # z.B. "demo1.local"
-
-
-class DeleteResponse(BaseModel):
-    message: str
+router = APIRouter(
+    prefix="/instances/wp",
+    tags=["wordpress"],
+)
 
 
-def run_script(script_path: Path, args: list[str]) -> None:
-    """
-    Führt ein Shell-Skript aus und wirft eine saubere HTTP-Fehlermeldung,
-    wenn etwas schiefgeht.
-    """
-    if not script_path.exists():
-        raise HTTPException(
-            status_code=500,
-            detail=f"Script not found: {script_path}",
-        )
-
-    result = subprocess.run(
-        ["bash", str(script_path)] + args,
-        capture_output=True,
-        text=True,
-    )
-
-    if result.returncode != 0:
-        stderr = (result.stderr or "").strip()
-        stdout = (result.stdout or "").strip()
-        msg = stderr or stdout or "unknown error"
-        raise HTTPException(
-            status_code=500,
-            detail=f"Script failed ({script_path.name}): {msg}",
-        )
+class WordPressCreateRequest(BaseModel):
+    slug: str
+    domain: str
 
 
 @router.post(
-    "/instances/wp",
+    "",
     response_model=Instance,
-    dependencies=[Depends(verify_api_key)],
+    responses={
+        400: {"model": ErrorResponse, "description": "Ungültige Eingabe"},
+        500: {"model": ErrorResponse, "description": "Skript- oder Clusterfehler"},
+    },
 )
-async def create_wp_instance(req: CreateWpRequest):
+def create_wp_instance(
+    payload: WordPressCreateRequest,
+    api_key: str = Depends(verify_api_key),
+) -> Instance:
     """
-    Legt eine neue WordPress-Instanz an.
+    Legt eine neue WordPress-Instanz an und startet das Provisionierungs-Skript.
     """
-    instance_id = f"wp-{req.slug}"
-    namespace = instance_id
+    try:
+        instance = create_wordpress_instance(
+            slug=payload.slug,
+            domain=payload.domain,
+            store=store,
+        )
+        return instance
 
-    # Prüfen, ob Instanz schon existiert
-    if store.get_instance(instance_id) is not None:
+    except ValueError as exc:
+        # Eingabefehler (z. B. leerer slug)
         raise HTTPException(
-            status_code=400,
-            detail=f"Instance '{instance_id}' already exists.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "invalid_input",
+                "detail": str(exc),
+            },
         )
 
-    # Helm-/kubectl-Skript aufrufen
-    run_script(WP_PROVISION_SCRIPT, [req.slug, req.domain])
-
-    now = datetime.utcnow()
-    instance = Instance(
-        id=instance_id,
-        type="wordpress",
-        namespace=namespace,
-        domain=req.domain,
-        created_at=now,
-        updated_at=now,
-        status="creating",
-    )
-    store.add_instance(instance)
-    return instance
+    except ScriptError as exc:
+        # Skript/Helm/kubectl-Fehler
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "wordpress_provisioning_failed",
+                "detail": str(exc),
+                "stdout": exc.stdout,
+                "stderr": exc.stderr,
+            },
+        )
 
 
 @router.delete(
-    "/instances/wp/{slug}",
-    response_model=DeleteResponse,
-    dependencies=[Depends(verify_api_key)],
+    "/{instance_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        404: {"model": ErrorResponse, "description": "Instanz nicht gefunden"},
+        500: {"model": ErrorResponse, "description": "Skript- oder Clusterfehler"},
+    },
 )
-async def delete_wp_instance(slug: str):
+def delete_wp_instance(
+    instance_id: str,
+    api_key: str = Depends(verify_api_key),
+) -> None:
     """
-    Löscht eine WordPress-Instanz.
+    Löscht eine bestehende WordPress-Instanz über das Delete-Skript.
     """
-    instance_id = f"wp-{slug}"
+    # Instanz aus dem Store holen
+    instance = store.get(instance_id)
+    if instance is None or instance.type != "wordpress":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": "instance_not_found",
+                "detail": f"WordPress-Instanz {instance_id!r} existiert nicht.",
+            },
+        )
 
-    run_script(WP_DELETE_SCRIPT, [slug])
+    try:
+        delete_wordpress_instance(instance, store=store)
 
-    removed = store.remove_instance(instance_id)
-    if not removed:
-        return DeleteResponse(message=f"Instance '{instance_id}' deleted (not in JSON).")
-
-    return DeleteResponse(message=f"Instance '{instance_id}' deleted.")
-
-
-@router.get("/instances/wp", response_model=List[Instance])
-async def list_wp_instances():
-    """
-    Listet alle WordPress-Instanzen und aktualisiert den Status via kubectl.
-    """
-    instances = store.list_instances(type_filter="wordpress")
-    updated_instances: List[Instance] = []
-
-    for inst in instances:
-        status = get_namespace_status(inst.namespace)
-        inst.status = status
-        inst.updated_at = datetime.utcnow()
-        store.update_instance(inst)
-        updated_instances.append(inst)
-
-    return updated_instances
-
-
-@router.get("/instances/wp/{slug}", response_model=Instance)
-async def get_wp_instance(slug: str):
-    """
-    Holt eine einzelne WordPress-Instanz + Status.
-    """
-    instance_id = f"wp-{slug}"
-    inst = store.get_instance(instance_id)
-    if inst is None:
-        raise HTTPException(status_code=404, detail="Instance not found.")
-
-    inst.status = get_namespace_status(inst.namespace)
-    inst.updated_at = datetime.utcnow()
-    store.update_instance(inst)
-    return inst
+    except ScriptError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "wordpress_delete_failed",
+                "detail": str(exc),
+                "stdout": exc.stdout,
+                "stderr": exc.stderr,
+            },
+        )
