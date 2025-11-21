@@ -3,17 +3,15 @@
 set -euo pipefail
 
 if [ $# -ne 1 ]; then
-  echo "Usage: $0 <slug>"
-  echo "Example: $0 kunde3"
+  echo "Usage: $0 <namespace>"
+  echo "Example: $0 kunde1"
   exit 1
 fi
 
-SLUG="$1"
-NS="wp-${SLUG}"
-RELEASE="wp-${SLUG}"
+NS="$1"
+RELEASE="${NS}"
 
 echo ">>> Lösche WordPress-Instanz"
-echo "    Slug:       ${SLUG}"
 echo "    Namespace:  ${NS}"
 echo "    Release:    ${RELEASE}"
 echo
