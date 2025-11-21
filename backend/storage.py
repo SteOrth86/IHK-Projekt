@@ -1,85 +1,117 @@
-# storage.py
+from __future__ import annotations
+
 import json
 from pathlib import Path
-from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel
 
-from config import INSTANCES_FILE
+import config
 
 
 class Instance(BaseModel):
-    id: str                    # z.B. "wp-demo1"
-    type: str                  # "wordpress" oder später "odoo"
-    namespace: str             # z.B. "wp-demo1"
-    domain: str                # z.B. "demo1.local"
-    created_at: datetime
-    updated_at: datetime
-    status: str = "unknown"    # wird später mit kubectl aktualisiert
+    id: str
+    type: str          # "wordpress" oder "odoo"
+    namespace: str
+    domain: str
+    created_at: str
+    updated_at: str
+    status: str        # z.B. "creating", "running", "error", "deleting"
 
 
 class InstanceStore:
-    """Einfache JSON-basierte Persistenz für Instanzen."""
+    """
+    Verwaltet die Instanzen in einer JSON-Datei (instances.json).
 
-    def __init__(self, path: Path):
-        self.path = path
-        self._instances: List[Instance] = []
-        self.load()
+    – Datei liegt unter config.INSTANCES_FILE
+    – Jede Operation lädt/schreibt die Datei komplett (für dein Projekt vollkommen ok).
+    """
 
-    def load(self) -> None:
-        """Instanzen aus JSON lesen (falls Datei existiert)."""
-        if self.path.exists():
-            raw = self.path.read_text(encoding="utf-8")
-            if raw.strip():
-                data = json.loads(raw)
-                self._instances = [Instance(**item) for item in data]
-            else:
-                self._instances = []
-        else:
-            self._instances = []
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path)
+        # Ordner sicherstellen
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        # Datei anlegen, falls sie nicht existiert
+        if not self.path.exists():
+            self._save_raw([])
 
-    def save(self) -> None:
-        """Instanzen in JSON schreiben."""
-        data = [inst.model_dump(mode="json") for inst in self._instances]
-        self.path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    # ---------- interne Helpers für Rohdaten ----------
 
-    def list_instances(self, type_filter: Optional[str] = None) -> List[Instance]:
-        if type_filter:
-            return [i for i in self._instances if i.type == type_filter]
-        return list(self._instances)
+    def _load_raw(self) -> list[dict]:
+        try:
+            with self.path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return []
+        except json.JSONDecodeError:
+            return []
 
-    def get_instance(self, instance_id: str) -> Optional[Instance]:
-        for inst in self._instances:
+        if isinstance(data, list):
+            return data
+        return []
+
+    def _save_raw(self, data: list[dict]) -> None:
+        with self.path.open("w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+    # ---------- öffentliche API ----------
+
+    def list(self) -> List[Instance]:
+        """Gibt alle Instanzen als Liste von Instance-Objekten zurück."""
+        return [Instance(**item) for item in self._load_raw()]
+
+    # optionaler Alias, falls du ihn später brauchen solltest
+    def list_instances(self) -> List[Instance]:
+        return self.list()
+
+    def get(self, instance_id: str) -> Optional[Instance]:
+        """Gibt eine Instanz mit der ID zurück oder None."""
+        for inst in self.list():
             if inst.id == instance_id:
                 return inst
         return None
 
-    def add_instance(self, instance: Instance) -> None:
-        # einfache Duplikats-Prüfung
-        if self.get_instance(instance.id) is not None:
-            raise ValueError(f"Instance with id '{instance.id}' already exists.")
-        self._instances.append(instance)
-        self.save()
+    def add(self, instance: Instance) -> None:
+        """
+        Fügt eine neue Instanz hinzu.
+        Wenn die ID bereits existiert, wird ein Fehler geworfen.
+        """
+        instances = self.list()
+        if any(i.id == instance.id for i in instances):
+            raise ValueError(f"Instance with id {instance.id!r} already exists")
+        instances.append(instance)
+        self._save(instances)
 
-    def remove_instance(self, instance_id: str) -> bool:
-        before = len(self._instances)
-        self._instances = [i for i in self._instances if i.id != instance_id]
-        changed = len(self._instances) != before
-        if changed:
-            self.save()
-        return changed
-
-    def update_instance(self, instance: Instance) -> None:
-        """Instanz ersetzen (z.B. wenn sich der Status geändert hat)."""
-        for idx, inst in enumerate(self._instances):
+    def update(self, instance: Instance) -> None:
+        """
+        Aktualisiert eine bestehende Instanz (matcht über id).
+        Wirft KeyError, wenn die Instanz nicht existiert.
+        """
+        instances = self.list()
+        for idx, inst in enumerate(instances):
             if inst.id == instance.id:
-                self._instances[idx] = instance
-                self.save()
+                instances[idx] = instance
+                self._save(instances)
                 return
-        # wenn nicht gefunden, neu anlegen
-        self._instances.append(instance)
-        self.save()
+        raise KeyError(f"Instance {instance.id!r} not found")
 
-# Globaler Store, den alle Module (main + Router) benutzen
-store = InstanceStore(INSTANCES_FILE)
+    def remove(self, instance_id: str) -> None:
+        """
+        Entfernt eine Instanz mit der gegebenen ID.
+        Wenn keine gefunden wird, passiert einfach nichts.
+        """
+        instances = self.list()
+        new_instances = [inst for inst in instances if inst.id != instance_id]
+        if len(new_instances) == len(instances):
+            # nichts geändert
+            return
+        self._save(new_instances)
+
+    # ---------- Helper zum Speichern von Instance-Listen ----------
+
+    def _save(self, instances: List[Instance]) -> None:
+        self._save_raw([inst.model_dump() for inst in instances])
+
+
+# Globaler Store, wie von dir beschrieben
+store = InstanceStore(config.INSTANCES_FILE)
