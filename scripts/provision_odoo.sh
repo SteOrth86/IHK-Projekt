@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
 # Erwartet: <slug> [domain]
+
 if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
   echo "Usage: $0 <slug> [domain]" >&2
   echo "Example: $0 kunde1 kunde1.odoo.local" >&2
@@ -9,10 +11,11 @@ if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
 fi
 
 SLUG="$1"
+
 if [ "$#" -eq 2 ]; then
   DOMAIN="$2"
 else
-  DOMAIN="${SLUG}.odoo.local"
+  DOMAIN="${SLUG}.local"
 fi
 
 NS="odoo-${SLUG}"
@@ -27,6 +30,7 @@ echo "    Hostname:   ${HOST}"
 echo
 
 # Verzeichnisse relativ zum Skript bestimmen
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 VALUES_FILE="${PROJECT_ROOT}/k8s/minikube/odoo-values.yaml"
