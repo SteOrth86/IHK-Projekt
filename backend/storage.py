@@ -18,6 +18,8 @@ class Instance(BaseModel):
     updated_at: str
     status: str        # z.B. "creating", "running", "error", "deleting"
 
+    suspended: bool = False
+    suspend_reason: Optional[str] = None
 
 class InstanceStore:
     """
