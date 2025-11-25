@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+
 import config
 from storage import Instance, InstanceStore
 from utils.commands import run_script, ScriptError
@@ -33,6 +34,36 @@ def _instance_exists_in_file(instance_id: str) -> bool:
 
     return any(item.get("id") == instance_id for item in data)
 
+def _domain_exists_in_file(domain: str) -> bool:
+    """
+    Prüft, ob eine Domain bereits von einer Instanz (egal ob WP oder Odoo)
+    verwendet wird.
+    """
+    path = Path(config.INSTANCES_FILE)
+    if not path.exists():
+        return False
+
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError:
+        return False
+
+    if not isinstance(data, list):
+        return False
+
+    domain = domain.strip().lower()
+
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        existing = item.get("domain")
+        if not isinstance(existing, str):
+            continue
+        if existing.strip().lower() == domain:
+            return True
+
+    return False
 
 def create_wordpress_instance(
     slug: str,
@@ -50,8 +81,14 @@ def create_wordpress_instance(
     namespace = f"wp-{slug}"
     instance_id = f"wp-{slug}"
 
+    # 1. ID darf nicht doppelt sein
     if _instance_exists_in_file(instance_id):
         raise ValueError(f"Instance '{instance_id}' already exists")
+
+    # 2. Domain darf systemweit nur einmal vorkommen (WP + Odoo)
+    if _domain_exists_in_file(domain):
+        raise ValueError(f"Domain '{domain}' wird bereits von einer anderen Instanz verwendet")
+
     instance = Instance(
         id=instance_id,
         type="wordpress",
@@ -64,7 +101,7 @@ def create_wordpress_instance(
     store.add(instance)
 
     try:
-        run_script(config.WP_PROVISION_SCRIPT, slug, domain)
+        run_script(str(config.WP_PROVISION_SCRIPT), slug, domain)
     except ScriptError:
         instance.status = "error"
         instance.updated_at = _now_iso()
@@ -96,9 +133,8 @@ def delete_wordpress_instance(
     store.update(instance)
 
     try:
-        # ⚠️ Argumente an dein reales Skript anpassen.
-        # Beispiel: ./delete_wp.sh <namespace>
-        run_script(config.WP_DELETE_SCRIPT, instance.namespace)
+        # ./delete_wp.sh <namespace>
+        run_script(str(config.WP_DELETE_SCRIPT), instance.namespace)
     except ScriptError:
         instance.status = "error"
         instance.updated_at = _now_iso()

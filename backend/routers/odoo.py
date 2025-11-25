@@ -1,12 +1,15 @@
 # backend/routers/odoo.py
 import re
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
 from auth import verify_api_key
 from schemas.errors import ErrorResponse
 from storage import Instance, store
-from services.odoo import create_odoo_instance, delete_odoo_instance
+from services.odoo import (
+    create_odoo_instance as create_odoo_service,
+    delete_odoo_instance as delete_odoo_service,
+)
 from utils.commands import ScriptError
 from http_errors import http_404, http_500
 
@@ -16,11 +19,12 @@ router = APIRouter(
     tags=["odoo"],
 )
 
-
 SLUG_RE = re.compile(r"^[a-z0-9-]+$")
 
 DOMAIN_RE = re.compile(
-    r"^(?=.{3,253}$)([a-z0-9-]{1,63}\.)+[a-z]{2,63}$")
+    r"^(?=.{3,253}$)([a-z0-9-]{1,63}\.)+[a-z]{2,63}$"
+)
+
 
 class OdooCreateRequest(BaseModel):
     slug: str = Field(min_length=3, max_length=30)
@@ -29,21 +33,13 @@ class OdooCreateRequest(BaseModel):
     @field_validator("slug")
     @classmethod
     def validate_slug(cls, v: str) -> str:
-        # Normalisieren: trim + lowercase
         v = v.strip().lower()
-
-        # nur a-z, 0-9 und '-'
         if not SLUG_RE.match(v):
             raise ValueError("slug darf nur Kleinbuchstaben, Ziffern und '-' enthalten")
-
-        # Präfix-Konventionen schützen
         if v.startswith(("wp-", "odoo-")):
             raise ValueError("slug darf nicht mit 'wp-' oder 'odoo-' beginnen")
-
-        # Kubernetes-Namespace-Limit (odoo-<slug> <= 63 Zeichen)
         if len(f"odoo-{v}") > 63:
             raise ValueError("slug ist zu lang für den Kubernetes-Namespace (max. 63 Zeichen)")
-
         return v
 
     @field_validator("domain")
@@ -65,37 +61,46 @@ class OdooCreateRequest(BaseModel):
         500: {"model": ErrorResponse},
     },
 )
-def create_odoo_instance_endpoint(req: OdooCreateRequest) -> Instance:
+def create_odoo_instance(req: OdooCreateRequest) -> Instance:
     """
     Legt eine neue Odoo-Instanz an (Service-Layer + Provisionierungs-Skript).
     """
     try:
-        return create_odoo_instance(store=store, slug=req.slug, domain=req.domain)
+        return create_odoo_service(store=store, slug=req.slug, domain=req.domain)
 
     except ValueError as exc:
         msg = str(exc)
-        # Slug / Instanz-ID schon vergeben?
-        if "already exists" in msg:
+
+        # Doppelter Slug / Instanz-ID oder bereits verwendete Domain → 409 Conflict
+        if "already exists" in msg or "wird bereits von einer anderen Instanz verwendet" in msg:
             raise HTTPException(
                 status_code=409,
-                detail=ErrorResponse(
-                    error="slug_already_exists",
-                    detail=msg,
-                ).model_dump(),
+                detail={
+                    "error": "odoo_conflict",
+                    "detail": msg,
+                },
             )
-        # Allgemeiner Validierungsfehler
+
+        # Sonstige ValueError aus dem Service → 400 Bad Request
         raise HTTPException(
             status_code=400,
-            detail=ErrorResponse(
-                error="invalid_request",
-                detail=msg,
-            ).model_dump(),
+            detail={
+                "error": "odoo_invalid_request",
+                "detail": msg,
+            },
         )
 
     except ScriptError:
+        # Skript-/Kubernetes-Fehler → 500
         raise http_500(
             "odoo_provisioning_failed",
             "Fehler bei der Odoo-Provisionierung. Details siehe Backend-Logs.",
+        )
+    except Exception:
+        # Fallback für wirklich unerwartete Fehler
+        raise http_500(
+            "odoo_unexpected_error",
+            "Unerwarteter Fehler bei der Odoo-Provisionierung.",
         )
 
 
@@ -108,11 +113,10 @@ def create_odoo_instance_endpoint(req: OdooCreateRequest) -> Instance:
         500: {"model": ErrorResponse},
     },
 )
-def delete_odoo_instance_endpoint(instance_id: str) -> None:
+def delete_odoo_instance(instance_id: str) -> None:
     """
     Löscht eine Odoo-Instanz inkl. Namespace im Cluster.
     """
-    # Instanz aus dem Store holen
     instance = store.get(instance_id)
     if instance is None or instance.type != "odoo":
         raise http_404(
@@ -121,13 +125,9 @@ def delete_odoo_instance_endpoint(instance_id: str) -> None:
         )
 
     try:
-        # ⚠️ Wir gehen davon aus, dass services.odoo.delete_odoo_instance
-        # dieselbe Signatur wie bei WordPress hat: (instance, store)
-        delete_odoo_instance(instance=instance, store=store)
+        delete_odoo_service(instance=instance, store=store)
     except ScriptError:
         raise http_500(
             "odoo_delete_failed",
             f"Fehler beim Löschen der Odoo-Instanz '{instance_id}'. Details siehe Backend-Logs.",
         )
-
-    return None

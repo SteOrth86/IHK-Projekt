@@ -47,7 +47,6 @@ class WordPressCreateRequest(BaseModel):
         return v
 
 
-
 @router.post(
     "",
     response_model=Instance,
@@ -63,37 +62,40 @@ def create_wp_instance(req: WordPressCreateRequest) -> Instance:
     Legt eine neue WordPress-Instanz an (Service-Layer + Provisionierungs-Skript).
     """
     try:
-        # Service aufrufen – hier steckt auch dein Duplicate-Check drin
         return create_wordpress_instance(store=store, slug=req.slug, domain=req.domain)
-
     except ValueError as exc:
-        # Validierungs-/Businessfehler aus dem Service (z. B. slug leer oder already exists)
         msg = str(exc)
 
-        # Slug/Instanz-ID bereits vergeben → 409 Conflict
-        if "already exists" in msg:
+        # Doppelter Slug / Instanz-ID oder bereits verwendete Domain → 409 Conflict
+        if "already exists" in msg or "wird bereits von einer anderen Instanz verwendet" in msg:
             raise HTTPException(
                 status_code=409,
-                detail=ErrorResponse(
-                    error="slug_already_exists",
-                    detail=msg,
-                ).model_dump(),
+                detail={
+                    "error": "wp_conflict",
+                    "detail": msg,
+                },
             )
 
-        # allgemeiner ValueError → 400 Bad Request
+        # Sonstige ValueError aus dem Service → 400 Bad Request
         raise HTTPException(
             status_code=400,
-            detail=ErrorResponse(
-                error="invalid_request",
-                detail=msg,
-            ).model_dump(),
+            detail={
+                "error": "wp_invalid_request",
+                "detail": msg,
+            },
         )
 
     except ScriptError:
-        # Skript-/Helm-/kubectl-Fehler → wie bisher 500 mit wp_provisioning_failed
+        # Skript-/Kubernetes-Fehler → 500
         raise http_500(
             "wp_provisioning_failed",
             "Fehler bei der WordPress-Provisionierung. Details siehe Backend-Logs.",
+        )
+    except Exception:
+        # Fallback für wirklich unerwartete Fehler
+        raise http_500(
+            "wp_unexpected_error",
+            "Unerwarteter Fehler bei der WordPress-Provisionierung.",
         )
 
 

@@ -28,13 +28,44 @@ def _instance_exists_in_file(instance_id: str) -> bool:
         with path.open("r", encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError:
-        # Wenn die Datei kaputt ist, behandeln wir es wie "keine Instanz"
         return False
 
     if not isinstance(data, list):
         return False
 
     return any(item.get("id") == instance_id for item in data)
+
+
+def _domain_exists_in_file(domain: str) -> bool:
+    """
+    Prüft, ob eine Domain bereits von einer Instanz (egal ob WP oder Odoo)
+    verwendet wird.
+    """
+    path = Path(config.INSTANCES_FILE)
+    if not path.exists():
+        return False
+
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError:
+        return False
+
+    if not isinstance(data, list):
+        return False
+
+    domain = domain.strip().lower()
+
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        existing = item.get("domain")
+        if not isinstance(existing, str):
+            continue
+        if existing.strip().lower() == domain:
+            return True
+
+    return False
 
 
 def create_odoo_instance(
@@ -47,7 +78,7 @@ def create_odoo_instance(
 
     Schritte:
     - Validierung von slug/domain.
-    - Prüfen, ob die Instanz-ID bereits existiert.
+    - Prüfen, ob ID und Domain bereits existieren.
     - Instance-Objekt mit Status "creating" erzeugen und speichern.
     - provision_odoo.sh aufrufen.
     - Bei Erfolg: Status auf "running" setzen.
@@ -61,9 +92,13 @@ def create_odoo_instance(
     namespace = f"odoo-{slug}"
     instance_id = f"odoo-{slug}"
 
-    # Duplicate-Check wie bei WordPress
+    # 1. ID darf nicht doppelt sein
     if _instance_exists_in_file(instance_id):
         raise ValueError(f"Instance '{instance_id}' already exists")
+
+    # 2. Domain darf systemweit nur einmal vorkommen (WP + Odoo)
+    if _domain_exists_in_file(domain):
+        raise ValueError(f"Domain '{domain}' wird bereits von einer anderen Instanz verwendet")
 
     instance = Instance(
         id=instance_id,
@@ -77,7 +112,7 @@ def create_odoo_instance(
     store.add(instance)
 
     try:
-        # Wichtig: Pfad als str an run_script übergeben
+        # ./provision_odoo.sh <slug> <domain>
         run_script(str(config.ODOO_PROVISION_SCRIPT), slug, domain)
     except ScriptError:
         instance.status = "error"
@@ -110,7 +145,7 @@ def delete_odoo_instance(
     store.update(instance)
 
     try:
-        # Beispiel: ./delete_odoo.sh <namespace>
+        # ./delete_odoo.sh <namespace>
         run_script(str(config.ODOO_DELETE_SCRIPT), instance.namespace)
     except ScriptError:
         instance.status = "error"
