@@ -7,10 +7,10 @@ import stripe
 
 import config
 from storage import orders_store
+from services import orders as orders_service  # neu: unser Order-Service
 
 router = APIRouter()
 
-# Stripe API-Key (für spätere Nutzung, z. B. Event-API etc.)
 stripe.api_key = config.STRIPE_SECRET_KEY
 
 
@@ -18,15 +18,15 @@ def process_stripe_event(event: Mapping[str, Any]) -> None:
     """
     Verarbeitet Stripe-Events, die uns interessieren.
 
-    Aktuell:
     – checkout.session.completed:
       * client_reference_id = Order-ID
-      * setzt Order-Status auf "paid" (falls noch nicht paid/provisioned)
-      * speichert Session-ID und PaymentIntent-ID
+      * setzt Order-Status auf "paid"
+      * ruft Provisionierung für WordPress-Orders auf
+      * setzt Order-Status auf "provisioned" + instance_id
     """
     event_type = event.get("type")
     if event_type != "checkout.session.completed":
-        # Alles andere ignorieren wir vorerst
+        # andere Events ignorieren wir vorerst
         return
 
     data = event.get("data") or {}
@@ -34,23 +34,36 @@ def process_stripe_event(event: Mapping[str, Any]) -> None:
 
     order_id = session.get("client_reference_id")
     if not order_id:
-        # Ohne Referenz zur Order können wir nichts tun
         return
 
     order = orders_store.get(order_id)
     if order is None:
-        # Order existiert nicht (könnte theoretisch gelöscht worden sein)
         return
 
-    # Idempotenz: wenn Order schon bezahlt oder provisioniert ist, nichts machen
-    if order.status in ("paid", "provisioned"):
+    # Wenn schon provisioniert, tun wir nichts mehr (idempotent)
+    if order.status == "provisioned":
         return
 
-    order.status = "paid"
+    # Stripe-Daten immer aktualisieren
     order.stripe_session_id = session.get("id")
     order.stripe_payment_intent = session.get("payment_intent")
     order.updated_at = datetime.utcnow()
 
+    # Wenn noch nicht bezahlt, erst mal auf "paid" setzen
+    if order.status != "paid":
+        order.status = "paid"
+        orders_store.update(order)
+
+    # Nur WordPress-Orders werden automatisch provisioniert
+    if order.product_type != "wordpress":
+        return
+
+    # Provisionierung anstoßen (aktueller Stand: nur InstanceStore-Eintrag)
+    instance = orders_service.provision_wordpress_for_order(order)
+
+    order.status = "provisioned"
+    order.instance_id = instance.id
+    order.updated_at = datetime.utcnow()
     orders_store.update(order)
 
 
@@ -59,18 +72,9 @@ async def stripe_webhook(
     request: Request,
     stripe_signature: str | None = Header(default=None, alias="Stripe-Signature"),
 ):
-    """
-    Stripe-Webhook-Endpoint.
-
-    – Liest den Body
-    – Prüft optional die Signatur (wenn STRIPE_WEBHOOK_SECRET gesetzt ist)
-    – Ruft process_stripe_event(...) auf
-    """
-
     raw_body = await request.body()
 
-    # Dev/Tests: kein Webhook-Secret gesetzt → keine Signaturprüfung,
-    # aber wir verarbeiten das Event trotzdem.
+    # Dev/Tests: kein Webhook-Secret → keine Signaturprüfung
     if not config.STRIPE_WEBHOOK_SECRET:
         try:
             event = json.loads(raw_body.decode("utf-8") or "{}")
@@ -84,7 +88,7 @@ async def stripe_webhook(
             "type": event.get("type"),
         }
 
-    # Ab hier: „echter“ Betrieb mit Signaturprüfung
+    # Prod: Signaturpflicht
     if stripe_signature is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -98,13 +102,11 @@ async def stripe_webhook(
             secret=config.STRIPE_WEBHOOK_SECRET,
         )
     except ValueError:
-        # JSON oder Payload kaputt
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid payload",
         )
     except stripe.error.SignatureVerificationError:
-        # Signatur stimmt nicht
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid signature",
