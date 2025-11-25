@@ -1,3 +1,5 @@
+import logging
+
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
@@ -7,6 +9,15 @@ from services.status import refresh_instance_statuses
 from services.health import get_health_status
 from routers.wordpress import router as wp_router
 from routers.odoo import router as odoo_router
+
+# Zentrales Logging-Setup für das Backend
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+
+logger = logging.getLogger("ihk_backend")
+
 
 app = FastAPI(
     title="IHK-Projekt Backend",
@@ -20,6 +31,7 @@ app.include_router(odoo_router, tags=["odoo"])
 
 @app.get("/health")
 def health():
+    logger.info("Health-Check aufgerufen")
     return {"status": "ok"}
 
 
