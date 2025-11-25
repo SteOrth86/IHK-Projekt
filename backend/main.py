@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from storage import store, Instance
 from services.status import refresh_instance_statuses
+from services.health import get_health_status
 from routers.wordpress import router as wp_router
 from routers.odoo import router as odoo_router
 
@@ -19,8 +20,7 @@ app.include_router(odoo_router, tags=["odoo"])
 
 @app.get("/health")
 def health():
-    """Einfacher Healthcheck des Backends."""
-    return {"status": "ok"}
+    return get_health_status()
 
 
 @app.get("/instances", response_model=List[Instance])
