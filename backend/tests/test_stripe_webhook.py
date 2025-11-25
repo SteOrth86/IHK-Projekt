@@ -1,6 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 from main import app
+from models import Order
+from storage import orders_store
 
 
 @pytest.fixture
