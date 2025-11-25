@@ -19,6 +19,8 @@ router = APIRouter(
 
 SLUG_RE = re.compile(r"^[a-z0-9-]+$")
 
+DOMAIN_RE = re.compile(
+    r"^(?=.{3,253}$)([a-z0-9-]{1,63}\.)+[a-z]{2,63}$")
 
 class WordPressCreateRequest(BaseModel):
     slug: str = Field(min_length=3, max_length=30)
@@ -34,6 +36,14 @@ class WordPressCreateRequest(BaseModel):
             raise ValueError("slug darf nicht mit 'wp-' oder 'odoo-' beginnen")
         if len(f"wp-{v}") > 63:
             raise ValueError("slug ist zu lang für den Kubernetes-Namespace (max. 63 Zeichen)")
+        return v
+
+    @field_validator("domain")
+    @classmethod
+    def validate_domain(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not DOMAIN_RE.match(v):
+            raise ValueError("domain ist ungültig (z. B. 'kunde1.example.test')")
         return v
 
 
