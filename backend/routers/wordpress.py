@@ -8,8 +8,12 @@ from pydantic import BaseModel, Field, field_validator
 from auth import verify_api_key
 from schemas.errors import ErrorResponse
 from storage import Instance, store
-from services.wordpress import create_wordpress_instance, delete_wordpress_instance  # <== anpassen wie bei dir
-from services.admin_instances import suspend_instance, resume_instance
+from services.wordpress import (
+    create_wordpress_instance,
+    delete_wordpress_instance,
+    suspend_wordpress_instance,
+    resume_wordpress_instance,
+)
 from utils.commands import ScriptError
 from http_errors import http_404, http_500
 
@@ -146,6 +150,7 @@ def delete_wp_instance(instance_id: str) -> None:
         404: {"model": ErrorResponse},
     },
 )
+
 def suspend_wp_instance(instance_id: str, body: SuspendRequest | None = None) -> Instance:
     """
     Sperrt eine bestehende WordPress-Instanz (setzt suspended + optionalen Grund).
@@ -158,14 +163,16 @@ def suspend_wp_instance(instance_id: str, body: SuspendRequest | None = None) ->
             f"WordPress-Instanz '{instance_id}' existiert nicht.",
         )
 
-    # Admin-Service aufrufen
     reason = body.reason if body is not None else None
-    suspend_instance(instance, reason=reason)
 
-    # Änderungen in instances.json speichern
-    store.save()
+    # WordPress-spezifischen Admin-Service aufrufen
+    updated = suspend_wordpress_instance(
+        instance=instance,
+        store=store,
+        reason=reason,
+    )
 
-    return instance
+    return updated
 
 @router.post(
     "/{instance_id}/resume",
@@ -175,6 +182,7 @@ def suspend_wp_instance(instance_id: str, body: SuspendRequest | None = None) ->
         404: {"model": ErrorResponse},
     },
 )
+
 def resume_wp_instance(instance_id: str) -> Instance:
     """
     Hebt die Sperre einer WordPress-Instanz auf (setzt suspended zurück).
@@ -186,10 +194,9 @@ def resume_wp_instance(instance_id: str) -> Instance:
             f"WordPress-Instanz '{instance_id}' existiert nicht.",
         )
 
-    # Admin-Service aufrufen
-    resume_instance(instance)
+    updated = resume_wordpress_instance(
+        instance=instance,
+        store=store,
+    )
 
-    # Änderungen speichern
-    store.save()
-
-    return instance
+    return updated

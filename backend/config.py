@@ -21,6 +21,8 @@ ORDERS_FILE = DATA_DIR / "orders.json"
 # Pfade zu den Skripten im scripts-Ordner:
 WP_PROVISION_SCRIPT = SCRIPTS_DIR / "provision_wp.sh"
 WP_DELETE_SCRIPT = SCRIPTS_DIR / "delete_wp.sh"
+WP_SUSPEND_SCRIPT = SCRIPTS_DIR / "suspend_wp.sh"
+WP_RESUME_SCRIPT = SCRIPTS_DIR / "resume_wp.sh"
 
 ODOO_PROVISION_SCRIPT = SCRIPTS_DIR / "provision_odoo.sh"
 ODOO_DELETE_SCRIPT = SCRIPTS_DIR / "delete_odoo.sh"

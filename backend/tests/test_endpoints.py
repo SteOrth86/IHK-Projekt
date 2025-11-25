@@ -165,3 +165,102 @@ def test_get_unknown_instance_returns_404(client: TestClient):
         text = str(detail).lower()
         assert "not found" in text or ("nicht" in text and "existiert" in text)
 
+# -------------------------------------------------------------------
+# WordPress: suspend/resume – Fehlerfall (404)
+# -------------------------------------------------------------------
+
+def test_suspend_unknown_wp_instance_returns_404(client: TestClient):
+    headers = {"X-API-Key": "test-key"}
+
+    resp = client.post(
+        "/instances/wp/does-not-exist/suspend",
+        headers=headers,
+        json={"reason": "Test"},
+    )
+
+    assert resp.status_code == 404
+    body = resp.json()
+    detail = body.get("detail")
+    if isinstance(detail, dict):
+        assert detail.get("error") == "instance_not_found"
+    else:
+        text = str(detail).lower()
+        assert "not found" in text or ("nicht" in text and "existiert" in text)
+
+# -------------------------------------------------------------------
+# WordPress: suspend/resume – Erfolg & Idempotenz
+# -------------------------------------------------------------------
+
+def test_suspend_and_resume_wordpress_instance_via_http(client: TestClient):
+    headers = {"X-API-Key": "test-key"}
+
+    # 1. Instanz anlegen
+    resp_create = client.post(
+        "/instances/wp",
+        headers=headers,
+        json={
+            "slug": "kunde-suspend",
+            "domain": "kunde-suspend.example.test",
+        },
+    )
+    assert resp_create.status_code == 200
+    data = resp_create.json()
+    instance_id = data["id"]
+
+    # Direkt nach dem Anlegen sollte suspended False sein
+    assert data.get("suspended") is False
+    assert data.get("suspend_reason") is None
+
+    # 2. Suspend mit Grund
+    resp_suspend = client.post(
+        f"/instances/wp/{instance_id}/suspend",
+        headers=headers,
+        json={"reason": "Nicht bezahlt"},
+    )
+    assert resp_suspend.status_code == 200
+    suspended_data = resp_suspend.json()
+    assert suspended_data["id"] == instance_id
+    assert suspended_data.get("suspended") is True
+    assert suspended_data.get("suspend_reason") == "Nicht bezahlt"
+
+    # 3. GET /instances/{id} → sollte auch suspended=True zeigen
+    resp_get = client.get(f"/instances/{instance_id}")
+    assert resp_get.status_code == 200
+    got = resp_get.json()
+    assert got["id"] == instance_id
+    assert got.get("suspended") is True
+    assert got.get("suspend_reason") == "Nicht bezahlt"
+
+    # 4. Resume aufrufen
+    resp_resume = client.post(
+        f"/instances/wp/{instance_id}/resume",
+        headers=headers,
+    )
+    assert resp_resume.status_code == 200
+    resumed_data = resp_resume.json()
+    assert resumed_data["id"] == instance_id
+    assert resumed_data.get("suspended") is False
+    assert resumed_data.get("suspend_reason") is None
+
+    # 5. Idempotenz: zweites Resume darf nichts kaputt machen
+    resp_resume_again = client.post(
+        f"/instances/wp/{instance_id}/resume",
+        headers=headers,
+    )
+    assert resp_resume_again.status_code == 200
+    resumed_again_data = resp_resume_again.json()
+    assert resumed_again_data["id"] == instance_id
+    assert resumed_again_data.get("suspended") is False
+    assert resumed_again_data.get("suspend_reason") is None
+
+    # 6. Idempotenz: zweites Suspend mit anderem Grund aktualisiert nur den Grund
+    resp_suspend_again = client.post(
+        f"/instances/wp/{instance_id}/suspend",
+        headers=headers,
+        json={"reason": "Zweiter Grund"},
+    )
+    assert resp_suspend_again.status_code == 200
+    suspended_again_data = resp_suspend_again.json()
+    assert suspended_again_data["id"] == instance_id
+    assert suspended_again_data.get("suspended") is True
+    assert suspended_again_data.get("suspend_reason") == "Zweiter Grund"
