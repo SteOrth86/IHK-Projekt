@@ -63,7 +63,7 @@ def process_stripe_event(event: Mapping[str, Any]) -> None:
 
     order.status = "provisioned"
     order.instance_id = instance.id
-    order.updated_at = datetime.utcnow()
+    order.updated_at = datetime.now(UTC)
     orders_store.update(order)
 
 
