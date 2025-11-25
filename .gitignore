@@ -21,6 +21,6 @@ backend/.venv/
 
 # Laufzeitdaten (Persistenz)
 backend/data/instances.json
-
+backend/data/
 # Backup-/Test-Datei
 backend/main2.py
