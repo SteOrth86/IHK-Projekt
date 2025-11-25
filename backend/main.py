@@ -10,6 +10,7 @@ from services.health import get_health_status
 from routers.wordpress import router as wp_router
 from routers.odoo import router as odoo_router
 from routers.orders import router as orders_router
+from routers.stripe_webhooks import router as stripe_webhooks_router
 
 # Zentrales Logging-Setup für das Backend
 logging.basicConfig(
@@ -29,6 +30,7 @@ app = FastAPI(
 app.include_router(wp_router, tags=["wordpress"])
 app.include_router(odoo_router, tags=["odoo"])
 app.include_router(orders_router, tags=["orders"])
+app.include_router(stripe_webhooks_router, tags=["stripe"])
 
 @app.get("/health")
 def health():
