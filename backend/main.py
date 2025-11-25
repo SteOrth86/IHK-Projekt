@@ -9,6 +9,7 @@ from services.status import refresh_instance_statuses
 from services.health import get_health_status
 from routers.wordpress import router as wp_router
 from routers.odoo import router as odoo_router
+from routers.orders import router as orders_router
 
 # Zentrales Logging-Setup für das Backend
 logging.basicConfig(
@@ -27,7 +28,7 @@ app = FastAPI(
 # Router registrieren
 app.include_router(wp_router, tags=["wordpress"])
 app.include_router(odoo_router, tags=["odoo"])
-
+app.include_router(orders_router, tags=["orders"])
 
 @app.get("/health")
 def health():
