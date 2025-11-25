@@ -1,12 +1,15 @@
 # backend/routers/wordpress.py
 import re
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
 from auth import verify_api_key
 from schemas.errors import ErrorResponse
 from storage import Instance, store
-from services.wordpress import create_wordpress_instance, delete_wordpress_instance
+from services.wordpress import create_wordpress_instance, delete_wordpress_instance  # <== anpassen wie bei dir
+from services.admin_instances import suspend_instance, resume_instance
 from utils.commands import ScriptError
 from http_errors import http_404, http_500
 
@@ -45,6 +48,9 @@ class WordPressCreateRequest(BaseModel):
         if not DOMAIN_RE.match(v):
             raise ValueError("domain ist ungültig (z. B. 'kunde1.example.test')")
         return v
+
+class SuspendRequest(BaseModel):
+    reason: Optional[str] = None
 
 
 @router.post(
@@ -131,3 +137,59 @@ def delete_wp_instance(instance_id: str) -> None:
 
     # 204 No Content → kein Body
     return None
+
+@router.post(
+    "/{instance_id}/suspend",
+    response_model=Instance,
+    dependencies=[Depends(verify_api_key)],
+    responses={
+        404: {"model": ErrorResponse},
+    },
+)
+def suspend_wp_instance(instance_id: str, body: SuspendRequest | None = None) -> Instance:
+    """
+    Sperrt eine bestehende WordPress-Instanz (setzt suspended + optionalen Grund).
+    """
+    # Instanz aus dem Store holen
+    instance = store.get(instance_id)
+    if instance is None:
+        raise http_404(
+            "instance_not_found",
+            f"WordPress-Instanz '{instance_id}' existiert nicht.",
+        )
+
+    # Admin-Service aufrufen
+    reason = body.reason if body is not None else None
+    suspend_instance(instance, reason=reason)
+
+    # Änderungen in instances.json speichern
+    store.save()
+
+    return instance
+
+@router.post(
+    "/{instance_id}/resume",
+    response_model=Instance,
+    dependencies=[Depends(verify_api_key)],
+    responses={
+        404: {"model": ErrorResponse},
+    },
+)
+def resume_wp_instance(instance_id: str) -> Instance:
+    """
+    Hebt die Sperre einer WordPress-Instanz auf (setzt suspended zurück).
+    """
+    instance = store.get(instance_id)
+    if instance is None:
+        raise http_404(
+            "instance_not_found",
+            f"WordPress-Instanz '{instance_id}' existiert nicht.",
+        )
+
+    # Admin-Service aufrufen
+    resume_instance(instance)
+
+    # Änderungen speichern
+    store.save()
+
+    return instance
