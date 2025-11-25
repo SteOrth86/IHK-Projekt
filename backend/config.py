@@ -16,6 +16,7 @@ DATA_DIR.mkdir(exist_ok=True)
 
 # JSON-Datei für Instanzen
 INSTANCES_FILE = DATA_DIR / "instances.json"
+ORDERS_FILE = DATA_DIR / "orders.json"
 
 # Pfade zu den Skripten im scripts-Ordner:
 WP_PROVISION_SCRIPT = SCRIPTS_DIR / "provision_wp.sh"
