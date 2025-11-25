@@ -1,1 +1,6 @@
+fastapi
+uvicorn[standard]
+pydantic
 httpx
+stripe
+pytest

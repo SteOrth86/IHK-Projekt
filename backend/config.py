@@ -27,3 +27,7 @@ ODOO_DELETE_SCRIPT = SCRIPTS_DIR / "delete_odoo.sh"
 
 # Optionaler API-Key
 API_KEY = os.getenv("BACKEND_API_KEY")
+
+# Stripe-Konfiguration (Testmodus)
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
