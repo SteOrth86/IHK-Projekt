@@ -8,30 +8,34 @@ if [ "$#" -ne 1 ]; then
 fi
 
 NS="$1"
-RELEASE="${NS}"
+RELEASE="$NS"
 
-echo ">>> Lösche Odoo-Instanz"
-echo "    Namespace: ${NS}"
-echo "    Release:   ${RELEASE}"
+echo ">>> Loesche Odoo-Instanz"
+echo "    Namespace: $NS"
+echo "    Release:   $RELEASE"
 echo
 
-# Helm-Realease entfernen (falls vorhanden)
-
-if helm status "${Release}" -n "${NS} >/dev/null 2>&1; then
-  helm uninstall "${RELEASE}" -n "${NS}"
+# Helm-Release entfernen (falls vorhanden)
+if helm status "$RELEASE" -n "$NS" >/dev/null 2>&1; then
+  echo "Helm-Release '$RELEASE' im Namespace '$NS' gefunden. Deinstalliere..."
+  helm uninstall "$RELEASE" -n "$NS"
 else
-  echo "Hinweis: Helm-Release ${RELEASE} in Namespace ${NS} nicht gefunden."
+  echo "Hinweis: Helm-Release '$RELEASE' in Namespace '$NS' nicht gefunden. Ueberspringe Helm-Uninstall."
 fi
 
-# Namespace löschen (falls vorhansden)
-
-if kubectl get ns "${NS}" >/dev/null 2>&1; then
-  kubectl delete namespace "${NS}"
+# Namespace loeschen (falls vorhanden)
+if kubectl get ns "$NS" >/dev/null 2>&1; then
+  echo "Loesche Namespace '$NS'..."
+  if ! kubectl delete namespace "$NS" --wait=false; then
+    echo "Warnung: Namespace '$NS' konnte nicht geloescht werden (evtl. bereits terminating oder geloescht)."
+  fi
 else
-  echo "Hinweis: Namespace ${NS} existiert nicht."
+  echo "Hinweis: Namespace '$NS' existiert nicht. Nichts zu loeschen."
 fi
 
 echo
-echo ">>> Deinstallation abgeschlossen. Prüfen mit:"
+echo ">>> Odoo-Deinstallation abgeschlossen. Pruefen mit:"
 echo "    helm list -A | grep odoo-"
 echo "    kubectl get ns | grep odoo-"
+
+exit 0

@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-
+import json
+from pathlib import Path
 import config
 from storage import Instance, InstanceStore
 from utils.commands import run_script, ScriptError
@@ -10,6 +11,27 @@ from utils.commands import run_script, ScriptError
 def _now_iso() -> str:
     """Hilfsfunktion: aktueller Zeitpunkt als ISO-8601-String in UTC."""
     return datetime.now(timezone.utc).isoformat()
+
+def _instance_exists_in_file(instance_id: str) -> bool:
+    """
+    Prüft direkt in der Instanz-Datei, ob eine Instanz-ID bereits existiert.
+    Unabhängig vom aktuellen InstanceStore-Objekt.
+    """
+    path = Path(config.INSTANCES_FILE)
+    if not path.exists():
+        return False
+
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError:
+        # Wenn die Datei kaputt ist, behandeln wir es wie "keine Instanz"
+        return False
+
+    if not isinstance(data, list):
+        return False
+
+    return any(item.get("id") == instance_id for item in data)
 
 
 def create_wordpress_instance(
@@ -19,13 +41,6 @@ def create_wordpress_instance(
 ) -> Instance:
     """
     Erzeugt eine neue WordPress-Instanz.
-
-    Schritte:
-    - Validierung von slug/domain.
-    - Instance-Objekt mit Status "creating" erzeugen und speichern.
-    - provision_wp.sh aufrufen.
-    - Bei Erfolg: Status auf "running" setzen.
-    - Bei Fehler: Status auf "error" setzen und ScriptError weiterwerfen.
     """
     if not slug:
         raise ValueError("slug must not be empty")
@@ -35,6 +50,8 @@ def create_wordpress_instance(
     namespace = f"wp-{slug}"
     instance_id = f"wp-{slug}"
 
+    if _instance_exists_in_file(instance_id):
+        raise ValueError(f"Instance '{instance_id}' already exists")
     instance = Instance(
         id=instance_id,
         type="wordpress",
@@ -47,14 +64,11 @@ def create_wordpress_instance(
     store.add(instance)
 
     try:
-        # ⚠️ Falls deine Skripte andere Argumente erwarten, hier anpassen.
-        # Typisch wäre z.B.: ./provision_wp.sh <slug> <domain>
         run_script(config.WP_PROVISION_SCRIPT, slug, domain)
     except ScriptError:
         instance.status = "error"
         instance.updated_at = _now_iso()
         store.update(instance)
-        # Fehler nach außen weitergeben, damit der Router HTTP 500 setzen kann
         raise
     else:
         instance.status = "running"
