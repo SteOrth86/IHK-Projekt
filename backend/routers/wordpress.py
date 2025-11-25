@@ -1,8 +1,7 @@
 # backend/routers/wordpress.py
-from __future__ import annotations
-
+import re
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from auth import verify_api_key
 from schemas.errors import ErrorResponse
@@ -18,9 +17,25 @@ router = APIRouter(
 )
 
 
+SLUG_RE = re.compile(r"^[a-z0-9-]+$")
+
+
 class WordPressCreateRequest(BaseModel):
-    slug: str
+    slug: str = Field(min_length=3, max_length=30)
     domain: str
+
+    @field_validator("slug")
+    @classmethod
+    def validate_slug(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not SLUG_RE.match(v):
+            raise ValueError("slug darf nur Buchstaben(a-z), Ziffern(0-9) und '-' enthalten")
+        if v.startswith(("wp-", "odoo-")):
+            raise ValueError("slug darf nicht mit 'wp-' oder 'odoo-' beginnen")
+        if len(f"wp-{v}") > 63:
+            raise ValueError("slug ist zu lang für den Kubernetes-Namespace (max. 63 Zeichen)")
+        return v
+
 
 
 @router.post(

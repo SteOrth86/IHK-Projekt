@@ -1,8 +1,7 @@
 # backend/routers/odoo.py
-from __future__ import annotations
-
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+import re
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field, field_validator
 
 from auth import verify_api_key
 from schemas.errors import ErrorResponse
@@ -18,9 +17,32 @@ router = APIRouter(
 )
 
 
+SLUG_RE = re.compile(r"^[a-z0-9-]+$")
+
+
 class OdooCreateRequest(BaseModel):
-    slug: str
+    slug: str = Field(min_length=3, max_length=30)
     domain: str
+
+    @field_validator("slug")
+    @classmethod
+    def validate_slug(cls, v: str) -> str:
+        # Normalisieren: trim + lowercase
+        v = v.strip().lower()
+
+        # nur a-z, 0-9 und '-'
+        if not SLUG_RE.match(v):
+            raise ValueError("slug darf nur Kleinbuchstaben, Ziffern und '-' enthalten")
+
+        # Präfix-Konventionen schützen
+        if v.startswith(("wp-", "odoo-")):
+            raise ValueError("slug darf nicht mit 'wp-' oder 'odoo-' beginnen")
+
+        # Kubernetes-Namespace-Limit (odoo-<slug> <= 63 Zeichen)
+        if len(f"odoo-{v}") > 63:
+            raise ValueError("slug ist zu lang für den Kubernetes-Namespace (max. 63 Zeichen)")
+
+        return v
 
 
 @router.post(
