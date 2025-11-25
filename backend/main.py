@@ -1,11 +1,12 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from fastapi import FastAPI
 
 from storage import store, Instance
 from k8s_status import get_namespace_status
-
+from config import INSTANCES_FILE
+from services.status import refresh_instance_statuses
 from routers.wordpress import router as wp_router
 from routers.odoo import router as odoo_router
 
@@ -26,18 +27,15 @@ async def health():
 
 
 @app.get("/instances", response_model=List[Instance])
-async def list_all_instances():
+def list_all_instances(type: Optional[str] = None) -> List[Instance]:
     """
-    Listet alle Instanzen (WordPress + später Odoo) mit aktualisiertem Status.
+    Liefert alle Instanzen (optional nach type gefiltert)
+    und aktualisiert vorher deren Kubernetes-Status.
     """
-    instances = store.list_instances()
-    updated_instances: List[Instance] = []
+    instances = store.list()
 
-    for inst in instances:
-        status = get_namespace_status(inst.namespace)
-        inst.status = status
-        inst.updated_at = datetime.utcnow()
-        store.update_instance(inst)
-        updated_instances.append(inst)
+    if type:
+        instances = [inst for inst in instances if inst.type == type]
 
-    return updated_instances
+    return refresh_instance_statuses(store=store, instances=instances)
+

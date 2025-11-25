@@ -30,8 +30,15 @@ def create_odoo(req: OdooCreateRequest) -> Instance:
     """
     Legt eine neue Odoo-Instanz an (Service-Layer + Provisionierungs-Skript).
     """
-    return create_odoo_instance(store=store, slug=req.slug, domain=req.domain)
-
+    try:
+        return create_odoo_instance(store=store, slug=req.slug, domain=req.domain)
+    except Exception:
+        # Hinweis für die Doku:
+        # Hier scheitert es aktuell z.B. an fehlenden Bitnami-Odoo-Images (ImagePullBackOff).
+        raise http_500(
+            "odoo_provisioning_failed",
+            "Fehler bei der Odoo-Provisionierung. Details siehe Backend-Logs.",
+        )
 @router.delete(
     "/{instance_id}",
     status_code=204,
