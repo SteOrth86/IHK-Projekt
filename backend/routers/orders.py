@@ -1,6 +1,6 @@
 # routers/orders.py
-
 from fastapi import APIRouter, HTTPException, status
+from datetime import datetime
 
 from models import Order, OrderCreate
 from storage import orders_store
@@ -36,4 +36,36 @@ async def get_order(order_id: str) -> Order:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Order not found",
         )
+    return order
+
+@router.post("/orders/{order_id}/cancel", response_model=Order)
+async def cancel_order(order_id: str) -> Order:
+    """
+    Markiert eine Bestellung als 'canceled'.
+
+    Regeln:
+    – Wenn Order nicht existiert → 404
+    – Wenn Order bereits 'provisioned' → 409 Conflict
+    – Wenn Order bereits 'canceled' → einfach zurückgeben (idempotent)
+    – Sonst: Status auf 'canceled' setzen und speichern
+    """
+    order = orders_store.get(order_id)
+    if order is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found",
+        )
+
+    if order.status == "provisioned":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Order already provisioned",
+        )
+
+    if order.status == "canceled":
+        return order
+
+    order.status = "canceled"
+    order.updated_at = datetime.utcnow()
+    orders_store.update(order)
     return order
