@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from typing import Any, Mapping
-from datetime import datetime
+from datetime import datetime, UTC
 import json
 
 import stripe
@@ -47,7 +47,7 @@ def process_stripe_event(event: Mapping[str, Any]) -> None:
     # Stripe-Daten immer aktualisieren
     order.stripe_session_id = session.get("id")
     order.stripe_payment_intent = session.get("payment_intent")
-    order.updated_at = datetime.utcnow()
+    order.updated_at = datetime.now(UTC)
 
     # Wenn noch nicht bezahlt, erst mal auf "paid" setzen
     if order.status != "paid":

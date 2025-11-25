@@ -1,6 +1,6 @@
 # models.py
 
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Literal, Optional
 from pydantic import BaseModel, Field
 import uuid
@@ -23,8 +23,8 @@ class Order(BaseModel):
 
     instance_id: Optional[str] = None
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 class OrderCreate(BaseModel):
     """

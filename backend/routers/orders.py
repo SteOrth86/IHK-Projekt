@@ -1,6 +1,6 @@
 # routers/orders.py
 from fastapi import APIRouter, HTTPException, status
-from datetime import datetime
+from datetime import datetime, UTC
 
 from models import Order, OrderCreate
 from storage import orders_store
@@ -66,6 +66,6 @@ async def cancel_order(order_id: str) -> Order:
         return order
 
     order.status = "canceled"
-    order.updated_at = datetime.utcnow()
+    order.updated_at = datetime.now(UTC)
     orders_store.update(order)
     return order
