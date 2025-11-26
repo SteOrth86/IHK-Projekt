@@ -6,9 +6,12 @@ import json
 from pathlib import Path
 from typing import Optional
 
+import httpx
+
 import config
 from storage import Instance, InstanceStore
 from utils.commands import run_script, ScriptError
+from schemas.health import InstanceHealth
 from services.admin_instances import (
     suspend_instance as core_suspend_instance,
     resume_instance as core_resume_instance,
@@ -147,6 +150,41 @@ def delete_wordpress_instance(
         raise
 
     store.remove(instance.id)
+
+def check_wordpress_health(instance: Instance) -> InstanceHealth:
+    """
+    Führt einen einfachen Health-/Smoke-Check für eine WordPress-Instanz durch.
+
+    - baut die URL https://<domain>/wp-login.php
+    - akzeptiert self-signed TLS (verify=False, da wir im Lab ein Self-Signed-Zertifikat nutzen)
+    - wertet HTTP-Status 200 und 302 als "ok"
+    - alles andere wird als "error" zurückgegeben
+    """
+    url = f"https://{instance.domain}/wp-login.php"
+
+    try:
+        resp = httpx.get(url, verify=False, timeout=5.0)
+    except httpx.RequestError as exc:
+        # Netzwerk-/DNS-/TLS-Fehler
+        return InstanceHealth(
+            status="error",
+            http_status=None,
+            detail=f"RequestError for {url}: {exc}",
+        )
+
+    if resp.status_code in (200, 302):
+        return InstanceHealth(
+            status="ok",
+            http_status=resp.status_code,
+            detail=None,
+        )
+
+    return InstanceHealth(
+        status="error",
+        http_status=resp.status_code,
+        detail=f"Unexpected status code {resp.status_code} for {url}",
+    )
+
 
 def suspend_wordpress_instance(
     instance: Instance,

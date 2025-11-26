@@ -6,11 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
 from auth import verify_api_key
+from schemas.health import InstanceHealth
 from schemas.errors import ErrorResponse
 from storage import Instance, store
 from services.wordpress import (
     create_wordpress_instance,
     delete_wordpress_instance,
+    check_wordpress_health,
     suspend_wordpress_instance,
     resume_wordpress_instance,
 )
@@ -141,6 +143,29 @@ def delete_wp_instance(instance_id: str) -> None:
 
     # 204 No Content → kein Body
     return None
+
+@router.get("/{instance_id}/health", response_model=InstanceHealth)
+def get_wordpress_instance_health(
+    instance_id: str,
+    api_key: None = Depends(verify_api_key),
+):
+    """
+    Health-/Smoke-Check für eine einzelne WordPress-Instanz.
+
+    - nutzt die Domain der Instanz (instance.domain)
+    - ruft https://<domain>/wp-login.php auf
+    - gibt "ok" bei HTTP 200/302, sonst "error" zurück
+    """
+    instance = store.get(instance_id)
+
+    if instance is None or instance.type != "wordpress":
+        raise http_404(
+            "instance_not_found",
+            f"WordPress-Instanz '{instance_id}' existiert nicht.",
+        )
+
+    return check_wordpress_health(instance)
+
 
 @router.post(
     "/{instance_id}/suspend",

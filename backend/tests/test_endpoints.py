@@ -20,7 +20,7 @@ from services import wordpress as wp_service
 from services import odoo as odoo_service
 from services import status as status_service
 import main
-
+import httpx
 
 @pytest.fixture
 def client(tmp_path, monkeypatch) -> TestClient:
@@ -264,3 +264,81 @@ def test_suspend_and_resume_wordpress_instance_via_http(client: TestClient):
     assert suspended_again_data["id"] == instance_id
     assert suspended_again_data.get("suspended") is True
     assert suspended_again_data.get("suspend_reason") == "Zweiter Grund"
+
+def test_wordpress_health_ok(client: TestClient, monkeypatch):
+    headers = {"X-API-Key": "test-key"}
+
+    # 1. Instanz anlegen
+    resp = client.post(
+        "/instances/wp",
+        headers=headers,
+        json={
+            "slug": "health-ok",
+            "domain": "health-ok.local",
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    instance_id = data["id"]
+
+    # 2. httpx.get mocken → 200 OK
+    class DummyResponse:
+        def __init__(self, status_code: int):
+            self.status_code = status_code
+
+    def fake_get(url, verify=False, timeout=5.0):
+        # Optional: prüfen, ob die Domain stimmt
+        assert "health-ok.local" in url
+        return DummyResponse(200)
+
+    monkeypatch.setattr(httpx, "get", fake_get, raising=False)
+
+    # 3. Health-Endpoint aufrufen
+    resp = client.get(f"/instances/wp/{instance_id}/health", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "ok"
+    assert body["http_status"] == 200
+
+def test_wordpress_health_error_on_unexpected_status(client: TestClient, monkeypatch):
+    headers = {"X-API-Key": "test-key"}
+
+    # 1. Instanz anlegen
+    resp = client.post(
+        "/instances/wp",
+        headers=headers,
+        json={
+            "slug": "health-error",
+            "domain": "health-error.local",
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    instance_id = data["id"]
+
+    # 2. httpx.get mocken → 500 Internal Server Error
+    class DummyResponse:
+        def __init__(self, status_code: int):
+            self.status_code = status_code
+
+    def fake_get(url, verify=False, timeout=5.0):
+        return DummyResponse(500)
+
+    monkeypatch.setattr(httpx, "get", fake_get, raising=False)
+
+    # 3. Health-Endpoint aufrufen
+    resp = client.get(f"/instances/wp/{instance_id}/health", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "error"
+    assert body["http_status"] == 500
+    assert "Unexpected status code" in body.get("detail", "")
+
+def test_wordpress_health_unknown_instance_returns_404(client: TestClient):
+    headers = {"X-API-Key": "test-key"}
+
+    resp = client.get(
+        "/instances/wp/does-not-exist/health",
+        headers=headers,
+    )
+    assert resp.status_code == 404
