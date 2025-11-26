@@ -1,4 +1,3 @@
-# services/email.py
 from __future__ import annotations
 
 from email.message import EmailMessage
