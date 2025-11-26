@@ -59,14 +59,21 @@ spec:
                   mysqldump -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASSWORD}" "${DB_NAME}" \
                     | gzip > "/backups/db/${INSTANCE_NAME}-${TS}.sql.gz"
 
-                  echo ">>> wp-content-Backup..."
-                  tar czf "/backups/files/${INSTANCE_NAME}-${TS}-wp-content.tar.gz" \
-                    -C /var/www/html wp-content
+                  WP_ROOT="/var/www/html"
+
+                  if [ -d "${WP_ROOT}/wp-content" ]; then
+                    echo ">>> wp-content-Backup..."
+                    tar czf "/backups/files/${INSTANCE_NAME}-${TS}-wp-content.tar.gz" \
+                      -C "${WP_ROOT}" wp-content
+                  else
+                    echo ">>> Hinweis: ${WP_ROOT}/wp-content nicht gefunden, überspringe Dateien-Backup."
+                  fi
 
                   echo ">>> Alte Backups (>7 Tage) löschen..."
                   find /backups -type f -mtime +7 -print -delete
 
                   echo ">>> Backup fertig."
+
               volumeMounts:
                 - name: backup
                   mountPath: /backups
