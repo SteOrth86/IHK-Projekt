@@ -19,6 +19,11 @@ from routers import odoo as odoo_router
 from services import wordpress as wp_service
 from services import odoo as odoo_service
 from services import status as status_service
+from services import email as email_service
+
+# Hilfsliste für gemockte E-Mails
+sent_emails = []
+
 import main
 import httpx
 
@@ -58,6 +63,28 @@ def client(tmp_path, monkeypatch) -> TestClient:
 
     monkeypatch.setattr(status_service, "refresh_instance_statuses", fake_refresh, raising=False)
     monkeypatch.setattr(main, "refresh_instance_statuses", fake_refresh, raising=False)
+    # Standard-Empfänger für Zugangsdaten-Mails in Tests
+    monkeypatch.setattr(
+        config,
+        "ACCESS_DATA_EMAIL_TO",
+        "kunde@example.test",
+        raising=False,
+    )
+
+    # E-Mail-Versand mocken (keine echten SMTP-Verbindungen)
+    from tests import test_endpoints as this_module  # self-import
+
+    this_module.sent_emails.clear()
+
+    def fake_send_email(msg):
+        this_module.sent_emails.append(msg)
+
+    monkeypatch.setattr(
+        email_service,
+        "_send_email",
+        fake_send_email,
+        raising=False,
+    )
 
     return TestClient(main.app)
 
