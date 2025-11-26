@@ -62,7 +62,7 @@ if [ -f "${TEMPLATE}" ]; then
   sed "s/__SLUG__/${SLUG}/g" "${TEMPLATE}" | kubectl apply -f -
 else
   echo
-  echo ">>> Hinweis: Backup-Template nicht gefunden (${TEMPLATE}), üb>
+  echo ">>> Hinweis: Backup-Template nicht gefunden (${TEMPLATE}), überspringe Backup-Ressourcen."
 fi
 
 echo
