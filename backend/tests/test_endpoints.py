@@ -342,3 +342,20 @@ def test_wordpress_health_unknown_instance_returns_404(client: TestClient):
         headers=headers,
     )
     assert resp.status_code == 404
+
+def test_request_id_header_is_returned():
+    client = TestClient(main.app)
+
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert "X-Request-ID" in resp.headers
+    assert resp.headers["X-Request-ID"]  # nicht leer
+
+
+def test_request_id_header_is_preserved_if_sent():
+    client = TestClient(main.app)
+
+    custom_id = "test-request-id-123"
+    resp = client.get("/health", headers={"X-Request-ID": custom_id})
+    assert resp.status_code == 200
+    assert resp.headers["X-Request-ID"] == custom_id

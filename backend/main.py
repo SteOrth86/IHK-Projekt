@@ -4,6 +4,9 @@ from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
 
+from request_id import request_id_var
+from request_id_middleware import RequestIdMiddleware
+
 from storage import store, Instance
 from services.status import refresh_instance_statuses
 from services.health import get_health_status
@@ -12,11 +15,37 @@ from routers.odoo import router as odoo_router
 from routers.orders import router as orders_router
 from routers.stripe_webhooks import router as stripe_webhooks_router
 
-# Zentrales Logging-Setup für das Backend
+# Zentrales Logging-Setup für das Backend (mit request_id)
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format="%(asctime)s [%(levelname)s] [%(request_id)s] %(name)s: %(message)s",
 )
+
+
+class RequestIdFilter(logging.Filter):
+    """
+    Logging-Filter, der jeder Log-Nachricht eine request_id hinzufügt.
+
+    Hintergrund:
+    - Unser Format nutzt %(request_id)s.
+    - Ohne diesen Filter würden Logs ohne request_id (z. B. in Background-Jobs)
+      einen KeyError auslösen.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        try:
+            rid = request_id_var.get()
+        except LookupError:
+            rid = None
+
+        # Default "-", wenn kein Request-Kontext vorhanden ist
+        record.request_id = rid or "-"
+        return True
+
+
+# Filter global am Root-Logger registrieren,
+# damit alle Logs (auch aus utils.commands etc.) eine request_id bekommen.
+logging.getLogger().addFilter(RequestIdFilter())
 
 logger = logging.getLogger("ihk_backend")
 
@@ -25,6 +54,9 @@ app = FastAPI(
     title="IHK-Projekt Backend",
     version="0.1.0",
 )
+
+# request_id-Middleware aktivieren
+app.add_middleware(RequestIdMiddleware)
 
 # Router registrieren
 app.include_router(wp_router, tags=["wordpress"])
