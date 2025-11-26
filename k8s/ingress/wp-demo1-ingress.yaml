@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wp-demo1-wordpress
+  namespace: wp-demo1
+  labels:
+    app.kubernetes.io/instance: wp-demo1
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: wordpress
+    app.kubernetes.io/version: "6.8.3"
+    helm.sh/chart: wordpress-27.2.0
+  annotations:
+    meta.helm.sh/release-name: wp-demo1
+    meta.helm.sh/release-namespace: wp-demo1
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: demo1.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wp-demo1-wordpress
+                port:
+                  name: http
