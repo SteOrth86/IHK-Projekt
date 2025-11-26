@@ -16,6 +16,7 @@ from services.admin_instances import (
     suspend_instance as core_suspend_instance,
     resume_instance as core_resume_instance,
 )
+from services import email as email_service
 
 def _now_iso() -> str:
     """Hilfsfunktion: aktueller Zeitpunkt als ISO-8601-String in UTC."""
@@ -119,6 +120,8 @@ def create_wordpress_instance(
         instance.status = "running"
         instance.updated_at = _now_iso()
         store.update(instance)
+
+        email_service.send_wordpress_access_email(instance)
 
     return instance
 
