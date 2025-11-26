@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wp-kunde-domain-ok-wordpress
+  namespace: wp-kunde-domain-ok
+  labels:
+    app.kubernetes.io/instance: wp-kunde-domain-ok
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: wordpress
+    app.kubernetes.io/version: "6.8.3"
+    helm.sh/chart: wordpress-27.2.0
+  annotations:
+    meta.helm.sh/release-name: wp-kunde-domain-ok
+    meta.helm.sh/release-namespace: wp-kunde-domain-ok
+    cert-manager.io/cluster-issuer: selfsigned-cluster-issuer
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - kunde-domain-ok.example.test
+      secretName: wp-kunde-domain-ok-tls
+  rules:
+    - host: kunde-domain-ok.example.test
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wp-kunde-domain-ok-wordpress
+                port:
+                  name: http
