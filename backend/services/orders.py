@@ -2,6 +2,8 @@
 
 from datetime import datetime
 
+from audit import audit_event
+
 from models import Order
 from storage import Instance, store
 
@@ -18,7 +20,7 @@ def provision_wordpress_for_order(order: Order) -> Instance:
     now = datetime.utcnow().isoformat()
 
     instance = Instance(
-        id=order.instance_slug,
+        id=instance_id,
         type="wordpress",
         namespace=order.instance_slug,
         domain=order.domain,
@@ -28,6 +30,17 @@ def provision_wordpress_for_order(order: Order) -> Instance:
     )
 
     store.add(instance)
+
+    audit_event(
+        "wordpress_instance_created_for_order",
+        order_id=order.id,
+        product_type=order.product_type,
+        instance_id=instance.id,
+        namespace=instance.namespace,
+        domain=instance.domain,
+        order_status=order.status,
+        instance_status=instance.status,
+    )
 
     # TODO: hier später das eigentliche Provisionierungs-Skript aufrufen
     # (z. B. via run_script und config.WP_PROVISION_SCRIPT)

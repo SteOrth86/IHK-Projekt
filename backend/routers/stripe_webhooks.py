@@ -4,6 +4,7 @@ from datetime import datetime, UTC
 import json
 
 import stripe
+from audit import audit_event
 
 import config
 from storage import orders_store
@@ -51,8 +52,22 @@ def process_stripe_event(event: Mapping[str, Any]) -> None:
 
     # Wenn noch nicht bezahlt, erst mal auf "paid" setzen
     if order.status != "paid":
+        previous_status = order.status
+
         order.status = "paid"
         orders_store.update(order)
+
+        audit_event(
+            "order_paid",
+            order_id=order.id,
+            previous_status=previous_status,
+            new_status=order.status,
+            product_type=order.product_type,
+            instance_slug=order.instance_slug,
+            domain=order.domain,
+            stripe_session_id=order.stripe_session_id,
+            stripe_payment_intent=order.stripe_payment_intent,
+        )
 
     # Nur WordPress-Orders werden automatisch provisioniert
     if order.product_type != "wordpress":
@@ -61,10 +76,23 @@ def process_stripe_event(event: Mapping[str, Any]) -> None:
     # Provisionierung anstoßen (aktueller Stand: nur InstanceStore-Eintrag)
     instance = orders_service.provision_wordpress_for_order(order)
 
+    previous_status = order.status
+
     order.status = "provisioned"
     order.instance_id = instance.id
     order.updated_at = datetime.now(UTC)
     orders_store.update(order)
+
+    audit_event(
+        "order_provisioned",
+        order_id=order.id,
+        previous_status=previous_status,
+        new_status=order.status,
+        product_type=order.product_type,
+        instance_slug=order.instance_slug,
+        domain=order.domain,
+        instance_id=order.instance_id,
+    )
 
 
 @router.post("/webhooks/stripe", status_code=status.HTTP_200_OK)

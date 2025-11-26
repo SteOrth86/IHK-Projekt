@@ -2,6 +2,8 @@
 from fastapi import APIRouter, HTTPException, status
 from datetime import datetime, UTC
 
+from audit import audit_event
+
 from models import Order, OrderCreate
 from storage import orders_store
 
@@ -22,6 +24,16 @@ async def create_order(order_in: OrderCreate) -> Order:
     )
     # hier könnte später Validierung für slug/domain rein
     orders_store.add(order)
+
+    audit_event(
+        "order_created",
+        order_id=order.id,
+        product_type=order.product_type,
+        instance_slug=order.instance_slug,
+        domain=order.domain,
+        status=order.status,
+    )
+
     return order
 
 
@@ -63,9 +75,23 @@ async def cancel_order(order_id: str) -> Order:
         )
 
     if order.status == "canceled":
+        # idempotent: keine erneute Änderung, kein Audit-Eintrag
         return order
+
+    previous_status = order.status
 
     order.status = "canceled"
     order.updated_at = datetime.now(UTC)
     orders_store.update(order)
+
+    audit_event(
+        "order_canceled",
+        order_id=order.id,
+        previous_status=previous_status,
+        new_status=order.status,
+        product_type=order.product_type,
+        instance_slug=order.instance_slug,
+        domain=order.domain,
+    )
+
     return order
