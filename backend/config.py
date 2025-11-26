@@ -33,3 +33,16 @@ API_KEY = os.getenv("BACKEND_API_KEY")
 # Stripe-Konfiguration (Testmodus)
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
+# SMTP-/Mail-Konfiguration
+SMTP_HOST = os.getenv("SMTP_HOST", "localhost")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "1025"))
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "false").lower() == "true"
+SMTP_USERNAME = os.getenv("SMTP_USERNAME") or None
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD") or None
+
+# Absenderadresse für Systemmails
+SMTP_FROM = os.getenv("SMTP_FROM", "no-reply@example.test")
+
+# Standard-Zieladresse für Zugangsdaten (z. B. für Test / IHK-Demo)
+ACCESS_DATA_EMAIL_TO = os.getenv("ACCESS_DATA_EMAIL_TO")
