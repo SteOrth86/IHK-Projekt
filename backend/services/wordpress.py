@@ -11,12 +11,12 @@ import httpx
 import config
 from storage import Instance, InstanceStore
 from utils.commands import run_script, ScriptError
+from services import email as email_service
 from schemas.health import InstanceHealth
 from services.admin_instances import (
     suspend_instance as core_suspend_instance,
     resume_instance as core_resume_instance,
 )
-from services import email as email_service
 
 def _now_iso() -> str:
     """Hilfsfunktion: aktueller Zeitpunkt als ISO-8601-String in UTC."""
@@ -96,7 +96,9 @@ def create_wordpress_instance(
 
     # 2. Domain darf systemweit nur einmal vorkommen (WP + Odoo)
     if _domain_exists_in_file(domain):
-        raise ValueError(f"Domain '{domain}' wird bereits von einer anderen Instanz verwendet")
+        raise ValueError(
+            f"Domain '{domain}' wird bereits von einer anderen Instanz verwendet"
+        )
 
     instance = Instance(
         id=instance_id,
@@ -110,6 +112,7 @@ def create_wordpress_instance(
     store.add(instance)
 
     try:
+        # Provisionierung ausführen (in den Tests gemockt)
         run_script(str(config.WP_PROVISION_SCRIPT), slug, domain)
     except ScriptError:
         instance.status = "error"
@@ -117,10 +120,12 @@ def create_wordpress_instance(
         store.update(instance)
         raise
     else:
+        # Skript erfolgreich → Instanz läuft
         instance.status = "running"
         instance.updated_at = _now_iso()
         store.update(instance)
 
+        # 🔹 Genau hier: Zugangsdaten-Mail verschicken
         email_service.send_wordpress_access_email(instance)
 
     return instance
