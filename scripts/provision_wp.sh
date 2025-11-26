@@ -54,9 +54,21 @@ helm upgrade --install "${RELEASE}" bitnami/wordpress \
   --set ingress.hostname="${HOST}" \
   --set wordpressBlogName="WP ${SLUG}"
 
+TEMPLATE="${PROJECT_ROOT}/k8s/minikube/wp-backup-template.yaml"
+
+if [ -f "${TEMPLATE}" ]; then
+  echo
+  echo ">>> Lege Backup-PVC + CronJob für ${SLUG} an..."
+  sed "s/__SLUG__/${SLUG}/g" "${TEMPLATE}" | kubectl apply -f -
+else
+  echo
+  echo ">>> Hinweis: Backup-Template nicht gefunden (${TEMPLATE}), üb>
+fi
+
 echo
 echo ">>> Fertig!"
 echo "    Namespace: ${NS}"
 echo "    Release:   ${RELEASE}"
 echo "    Hostname:  ${HOST}"
 echo "    Hinweis:   Bitte /etc/hosts oder DNS so konfigurieren, dass ${HOST} auf die Minikube-IP zeigt."
+

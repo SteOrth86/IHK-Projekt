@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wp-__SLUG__-backup
+  namespace: wp-__SLUG__
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: wp-__SLUG__-backup
+  namespace: wp-__SLUG__
+spec:
+  # Täglich um 03:00 Uhr
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: wp-backup
+              image: bitnami/mariadb:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: INSTANCE_NAME
+                  value: "wp-__SLUG__"
+                - name: DB_HOST
+                  value: "wp-__SLUG__-mariadb"
+                - name: DB_NAME
+                  value: "bitnami_wordpress"
+                - name: DB_USER
+                  value: "bn_wordpress"
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: wp-__SLUG__-mariadb
+                      key: mariadb-password
+              command: ["/bin/bash", "-c"]
+              args:
+                - |
+                  set -euo pipefail
+
+                  TS="$(date +%Y%m%d-%H%M)"
+                  echo ">>> Starte WordPress-Backup für ${INSTANCE_NAME} um ${TS}"
+
+                  mkdir -p /backups/db /backups/files
+
+                  echo ">>> Datenbank-Backup..."
+                  mysqldump -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASSWORD}" "${DB_NAME}" \
+                    | gzip > "/backups/db/${INSTANCE_NAME}-${TS}.sql.gz"
+
+                  echo ">>> wp-content-Backup..."
+                  tar czf "/backups/files/${INSTANCE_NAME}-${TS}-wp-content.tar.gz" \
+                    -C /var/www/html wp-content
+
+                  echo ">>> Alte Backups (>7 Tage) löschen..."
+                  find /backups -type f -mtime +7 -print -delete
+
+                  echo ">>> Backup fertig."
+              volumeMounts:
+                - name: backup
+                  mountPath: /backups
+                - name: wp-data
+                  mountPath: /var/www/html
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: wp-__SLUG__-backup
+            - name: wp-data
+              persistentVolumeClaim:
+                claimName: wp-__SLUG__-wordpress
