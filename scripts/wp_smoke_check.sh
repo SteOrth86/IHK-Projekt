@@ -4,10 +4,7 @@
 
 set -euo pipefail
 
-# Erster Parameter: Hostname (z. B. demo1.local)
 HOST="${1:-demo1.local}"
-
-# Zweiter Parameter: Schema (http oder https), Default: http
 SCHEME="${2:-http}"
 
 URL="${SCHEME}://${HOST}/wp-login.php"
@@ -16,8 +13,16 @@ echo "Smoke-Check für WordPress-Login-Seite:"
 echo "  URL:  ${URL}"
 echo
 
-# HTTP-Statuscode abfragen (ohne Body)
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${URL}")
+# Wir fangen den curl-Exitcode ab, statt bei Fehler hart abzubrechen
+set +e
+HTTP_CODE=$(curl -k -s -o /dev/null -w "%{http_code}" "${URL}")
+CURL_EXIT=$?
+set -e
+
+if [[ "${CURL_EXIT}" -ne 0 ]]; then
+  echo "❌ Smoke-Check FEHLER: curl-Fehler ${CURL_EXIT} (z. B. Host nicht erreichbar oder TLS-Problem)"
+  exit 1
+fi
 
 echo "  HTTP-Status: ${HTTP_CODE}"
 
