@@ -1,6 +1,6 @@
 stages:
   - test
-
+  - build
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
@@ -27,3 +27,19 @@ test_backend:
       - backend/reports/
     reports:
       junit: backend/reports/junit.xml
+
+build_backend_image:
+  stage: build
+  image: docker:26.0.0
+  services:
+    - docker:26.0.0-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  needs:
+    - test_backend
+  script:
+    # Nur zur Kontrolle
+    - docker version
+    # Docker-Image aus dem Unterordner backend bauen
+    - docker build -t ihk-backend:${CI_COMMIT_SHORT_SHA} backend/
