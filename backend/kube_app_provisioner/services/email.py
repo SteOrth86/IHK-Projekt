@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from email.message import EmailMessage
 import smtplib
+from email.message import EmailMessage
 from typing import Optional
 
-import config
-from audit import audit_event
-from storage import Instance
+from kube_app_provisioner import config
+from kube_app_provisioner.audit import audit_event
+from kube_app_provisioner.storage import Instance
 
 
 def _build_wordpress_access_email(

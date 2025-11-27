@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Header, HTTPException, Request, status
-from typing import Any, Mapping
-from datetime import datetime, UTC
 import json
+from datetime import datetime, UTC
+from typing import Any, Mapping
 
 import stripe
-from audit import audit_event
+from fastapi import APIRouter, Header, HTTPException, Request, status
 
-import config
-from storage import orders_store
-from services import orders as orders_service  # neu: unser Order-Service
+from kube_app_provisioner import config
+from kube_app_provisioner.audit import audit_event
+from kube_app_provisioner.services import orders as orders_service
+from kube_app_provisioner.storage import orders_store
 
 router = APIRouter()
 

@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict
 
-from config import (
+from kube_app_provisioner.config import (
     WP_PROVISION_SCRIPT,
     WP_DELETE_SCRIPT,
     ODOO_PROVISION_SCRIPT,

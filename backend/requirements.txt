@@ -4,4 +4,3 @@ pydantic
 httpx
 stripe
 pytest
-stripe

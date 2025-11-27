@@ -9,11 +9,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from audit import audit_event
+from kube_app_provisioner.audit import audit_event
 
 
 def test_audit_event_creates_log_entry(caplog):
-    logger = logging.getLogger("ihk_backend.audit")
+    logger = logging.getLogger("kube_app_provisioner.audit")
 
     with caplog.at_level(logging.INFO, logger=logger.name):
         audit_event(

@@ -12,8 +12,8 @@ if str(ROOT) not in sys.path:
 import pytest
 from pydantic import ValidationError
 
-from routers.wordpress import WordPressCreateRequest
-from routers.odoo import OdooCreateRequest
+from kube_app_provisioner.routers.wordpress import WordPressCreateRequest
+from kube_app_provisioner.routers.odoo import OdooCreateRequest
 
 
 # -------------------------

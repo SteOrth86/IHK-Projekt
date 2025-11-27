@@ -1,7 +1,8 @@
-from fastapi import Header, HTTPException, status
 from typing import Optional
 
-from config import API_KEY
+from fastapi import Header, HTTPException, status
+
+from kube_app_provisioner.config import API_KEY
 
 
 async def verify_api_key(x_api_key: Optional[str] = Header(default=None)):

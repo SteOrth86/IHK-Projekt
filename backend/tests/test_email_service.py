@@ -1,7 +1,7 @@
 from email.message import EmailMessage
 
-from services import email as email_service
-from storage import Instance
+from kube_app_provisioner.services import email as email_service
+from kube_app_provisioner.storage import Instance
 
 
 def test_build_wordpress_access_email_contains_url_and_admin_user():

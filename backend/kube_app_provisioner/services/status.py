@@ -1,6 +1,7 @@
 from typing import Iterable, List
-from storage import Instance, InstanceStore
-from k8s_status import get_namespace_status
+
+from kube_app_provisioner.k8s_status import get_namespace_status
+from kube_app_provisioner.storage import Instance, InstanceStore
 
 
 def refresh_instance_statuses(

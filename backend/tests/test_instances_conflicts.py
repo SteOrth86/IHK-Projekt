@@ -12,13 +12,13 @@ if str(ROOT) not in sys.path:
 import pytest
 from fastapi import HTTPException
 
-import config
-import storage
-from storage import InstanceStore
-from routers import wordpress as wp_router
-from routers import odoo as odoo_router
-from services import wordpress as wp_service
-from services import odoo as odoo_service
+from kube_app_provisioner import config
+from kube_app_provisioner import storage
+from kube_app_provisioner.storage import InstanceStore
+from kube_app_provisioner.routers import wordpress as wp_router
+from kube_app_provisioner.routers import odoo as odoo_router
+from kube_app_provisioner.services import wordpress as wp_service
+from kube_app_provisioner.services import odoo as odoo_service
 
 
 def setup_isolated_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> InstanceStore:
@@ -54,7 +54,7 @@ def test_wp_domain_conflict_results_in_http_409(tmp_path, monkeypatch):
     setup_isolated_store(tmp_path, monkeypatch)
 
     # Import nach dem Setup, damit der Router den gepatchten Store nutzt
-    from routers.wordpress import WordPressCreateRequest, create_wp_instance
+    from kube_app_provisioner.routers.wordpress import WordPressCreateRequest, create_wp_instance
 
     # 1. Instanz mit Domain anlegen → sollte funktionieren
     req1 = WordPressCreateRequest(
@@ -89,7 +89,7 @@ def test_wp_domain_conflict_results_in_http_409(tmp_path, monkeypatch):
 def test_odoo_domain_conflict_results_in_http_409(tmp_path, monkeypatch):
     setup_isolated_store(tmp_path, monkeypatch)
 
-    from routers.odoo import OdooCreateRequest, create_odoo_instance
+    from kube_app_provisioner.routers.odoo import OdooCreateRequest, create_odoo_instance
 
     # 1. Odoo-Instanz mit Domain anlegen
     req1 = OdooCreateRequest(

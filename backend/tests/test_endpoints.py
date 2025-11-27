@@ -11,17 +11,17 @@ if str(ROOT) not in sys.path:
 import pytest
 from fastapi.testclient import TestClient
 
-import config
-import storage
-from storage import InstanceStore
-from routers import wordpress as wp_router
-from routers import odoo as odoo_router
-from services import wordpress as wp_service
-from services import odoo as odoo_service
-from services import status as status_service
-from services import email as email_service
+from kube_app_provisioner import config
+from kube_app_provisioner import storage
+from kube_app_provisioner.storage import InstanceStore
+from kube_app_provisioner.routers import wordpress as wp_router
+from kube_app_provisioner.routers import odoo as odoo_router
+from kube_app_provisioner.services import wordpress as wp_service
+from kube_app_provisioner.services import odoo as odoo_service
+from kube_app_provisioner.services import status as status_service
+from kube_app_provisioner.services import email as email_service
 
-import main
+import kube_app_provisioner.main as main
 import httpx
 
 @pytest.fixture

@@ -7,7 +7,7 @@ from typing import Callable, Awaitable
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from request_id import request_id_var
+from kube_app_provisioner.request_id import request_id_var
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):

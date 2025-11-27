@@ -1,20 +1,23 @@
 from pathlib import Path
 import os
 
-# Ordner, in dem sich das Backend befindet: ~/ihk-projekt/backend
-BASE_DIR = Path(__file__).resolve().parent
+# Paket-Verzeichnis: ~/ihk-projekt/backend/kube_app_provisioner
+PACKAGE_DIR = Path(__file__).resolve().parent
+
+# Backend-Root: ~/ihk-projekt/backend
+BACKEND_ROOT = PACKAGE_DIR.parent
 
 # Projekt-Root: ~/ihk-projekt
-PROJECT_ROOT = BASE_DIR.parent
+PROJECT_ROOT = BACKEND_ROOT.parent
 
 # Skript-Ordner: ~/ihk-projekt/scripts
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
-# Daten-Ordner für Persistenz: ~/ihk-projekt/backend/data
-DATA_DIR = BASE_DIR / "data"
+# Daten-Ordner fuer Persistenz: ~/ihk-projekt/backend/data
+DATA_DIR = BACKEND_ROOT / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
-# JSON-Datei für Instanzen
+# JSON-Dateien fuer Persistenz
 INSTANCES_FILE = DATA_DIR / "instances.json"
 ORDERS_FILE = DATA_DIR / "orders.json"
 
@@ -26,6 +29,8 @@ WP_RESUME_SCRIPT = SCRIPTS_DIR / "resume_wp.sh"
 
 ODOO_PROVISION_SCRIPT = SCRIPTS_DIR / "provision_odoo.sh"
 ODOO_DELETE_SCRIPT = SCRIPTS_DIR / "delete_odoo.sh"
+ODOO_SUSPEND_SCRIPT = SCRIPTS_DIR / "suspend_odoo.sh"
+ODOO_RESUME_SCRIPT = SCRIPTS_DIR / "resume_odoo.sh"
 
 # Optionaler API-Key
 API_KEY = os.getenv("BACKEND_API_KEY")
@@ -41,8 +46,8 @@ SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "false").lower() == "true"
 SMTP_USERNAME = os.getenv("SMTP_USERNAME") or None
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD") or None
 
-# Absenderadresse für Systemmails
+# Absenderadresse fuer Systemmails
 SMTP_FROM = os.getenv("SMTP_FROM", "no-reply@example.test")
 
-# Standard-Zieladresse für Zugangsdaten (z. B. für Test / IHK-Demo)
+# Standard-Zieladresse fuer Zugangsdaten (z. B. fuer Test / Demo)
 ACCESS_DATA_EMAIL_TO = os.getenv("ACCESS_DATA_EMAIL_TO")

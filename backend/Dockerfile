@@ -7,15 +7,15 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# Abhängigkeiten installieren
+# Abhaengigkeiten installieren
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Restlichen Code ins Image kopieren
 COPY . .
 
-# Standard-Port für FastAPI/Uvicorn
+# Standard-Port fuer FastAPI/Uvicorn
 EXPOSE 8000
 
-# Startbefehl für das Backend
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Startbefehl fuer das Backend (neuer Paketname)
+CMD ["uvicorn", "kube_app_provisioner.main:app", "--host", "0.0.0.0", "--port", "8000"]

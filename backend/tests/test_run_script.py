@@ -11,7 +11,7 @@ if str(ROOT) not in sys.path:
 import os
 import pytest
 
-from utils.commands import run_script, ScriptError
+from kube_app_provisioner.utils.commands import run_script, ScriptError
 
 
 def _make_script(tmp_path: Path, content: str, name: str = "script.sh") -> Path:
