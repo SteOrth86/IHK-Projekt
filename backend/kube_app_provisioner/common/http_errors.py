@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 
 from kube_app_provisioner.schemas.errors import ErrorResponse
-from kube_app_provisioner.services.base_instance_service import UnsupportedOperationError
+from kube_app_provisioner.services.core.base_instance_service import UnsupportedOperationError
 from kube_app_provisioner.utils.commands import ScriptError
 
 

@@ -2,7 +2,7 @@
 import subprocess
 from typing import List
 
-from kube_app_provisioner.status import InstanceStatus, map_pod_statuses_to_instance_status
+from kube_app_provisioner.core.status import InstanceStatus, map_pod_statuses_to_instance_status
 
 
 def _get_pod_statuses_for_namespace(namespace: str) -> List[str]:

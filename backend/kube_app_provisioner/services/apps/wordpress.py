@@ -5,11 +5,11 @@ from typing import Optional
 
 import httpx
 
-from kube_app_provisioner import config
+from kube_app_provisioner.core import config
 from kube_app_provisioner.schemas.health import InstanceHealth
-from kube_app_provisioner.services import email as email_service
-from kube_app_provisioner.services.base_instance_service import BaseInstanceService
-from kube_app_provisioner.storage import Instance, InstanceStore
+from kube_app_provisioner.services.apps import email as email_service
+from kube_app_provisioner.services.core.base_instance_service import BaseInstanceService
+from kube_app_provisioner.core.storage import Instance, InstanceStore
 
 
 wp_service = BaseInstanceService(

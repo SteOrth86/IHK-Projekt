@@ -2,7 +2,7 @@ from pathlib import Path
 import os
 
 # Paket-Verzeichnis: ~/ihk-projekt/backend/kube_app_provisioner
-PACKAGE_DIR = Path(__file__).resolve().parent
+PACKAGE_DIR = Path(__file__).resolve().parents[1]
 
 # Backend-Root: ~/ihk-projekt/backend
 BACKEND_ROOT = PACKAGE_DIR.parent

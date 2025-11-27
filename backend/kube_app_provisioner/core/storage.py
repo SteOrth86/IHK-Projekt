@@ -6,8 +6,8 @@ from typing import Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel
 
-from kube_app_provisioner import config
-from kube_app_provisioner.models import Order
+from kube_app_provisioner.core import config
+from kube_app_provisioner.core.models import Order
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 

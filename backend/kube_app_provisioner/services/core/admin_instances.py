@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import datetime, UTC
 from typing import Optional
 
-from kube_app_provisioner.storage import Instance
-from kube_app_provisioner.audit import audit_event
+from kube_app_provisioner.core.storage import Instance
+from kube_app_provisioner.common.audit import audit_event
 
 
 def suspend_instance(instance: Instance, reason: Optional[str] = None) -> Instance:

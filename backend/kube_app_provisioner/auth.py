@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import Header, HTTPException, status
 
-from kube_app_provisioner.config import API_KEY
+from kube_app_provisioner.core.config import API_KEY
 
 
 async def verify_api_key(x_api_key: Optional[str] = Header(default=None)):

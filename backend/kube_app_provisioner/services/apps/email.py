@@ -4,9 +4,9 @@ import smtplib
 from email.message import EmailMessage
 from typing import Optional
 
-from kube_app_provisioner import config
-from kube_app_provisioner.audit import audit_event
-from kube_app_provisioner.storage import Instance
+from kube_app_provisioner.core import config
+from kube_app_provisioner.common.audit import audit_event
+from kube_app_provisioner.core.storage import Instance
 
 
 def _build_wordpress_access_email(

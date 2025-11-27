@@ -3,11 +3,11 @@ from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
 
-from kube_app_provisioner.request_id import request_id_var
-from kube_app_provisioner.request_id_middleware import RequestIdMiddleware
-from kube_app_provisioner.storage import Instance, store
-from kube_app_provisioner.services.status import refresh_instance_statuses
-from kube_app_provisioner.services.health import get_health_status
+from kube_app_provisioner.common.request_id import request_id_var
+from kube_app_provisioner.common.request_id_middleware import RequestIdMiddleware
+from kube_app_provisioner.core.storage import Instance, store
+from kube_app_provisioner.services.apps.status import refresh_instance_statuses
+from kube_app_provisioner.services.apps.health import get_health_status
 from kube_app_provisioner.routers.wordpress import router as wp_router
 from kube_app_provisioner.routers.odoo import router as odoo_router
 from kube_app_provisioner.routers.orders import router as orders_router

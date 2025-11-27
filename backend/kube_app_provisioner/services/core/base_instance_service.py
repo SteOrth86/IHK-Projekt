@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-from kube_app_provisioner.services.admin_instances import resume_instance, suspend_instance
-from kube_app_provisioner.services.instance_utils import ensure_instance_uniqueness, now_iso
-from kube_app_provisioner.storage import Instance, InstanceStore
+from kube_app_provisioner.services.core.admin_instances import resume_instance, suspend_instance
+from kube_app_provisioner.services.core.instance_utils import ensure_instance_uniqueness, now_iso
+from kube_app_provisioner.core.storage import Instance, InstanceStore
 from kube_app_provisioner.utils.commands import ScriptError, run_script
 
 

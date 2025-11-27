@@ -2,9 +2,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from kube_app_provisioner.main import app
-from kube_app_provisioner.models import Order
-from kube_app_provisioner.storage import orders_store, Instance
-from kube_app_provisioner.services import orders as orders_service
+from kube_app_provisioner.core.models import Order
+from kube_app_provisioner.core.storage import orders_store, Instance
+from kube_app_provisioner.services.apps import orders as orders_service
 
 @pytest.fixture
 def client() -> TestClient:

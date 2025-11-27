@@ -1,9 +1,9 @@
 # backend/services/odoo.py
 from __future__ import annotations
 
-from kube_app_provisioner import config
-from kube_app_provisioner.services.base_instance_service import BaseInstanceService
-from kube_app_provisioner.storage import Instance, InstanceStore
+from kube_app_provisioner.core import config
+from kube_app_provisioner.services.core.base_instance_service import BaseInstanceService
+from kube_app_provisioner.core.storage import Instance, InstanceStore
 
 
 def create_odoo_instance(

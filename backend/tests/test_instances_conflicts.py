@@ -12,13 +12,14 @@ if str(ROOT) not in sys.path:
 import pytest
 from fastapi import HTTPException
 
-from kube_app_provisioner import config
-from kube_app_provisioner import storage
-from kube_app_provisioner.storage import InstanceStore
+from kube_app_provisioner.core import config
+from kube_app_provisioner.core import storage
+from kube_app_provisioner.core.storage import InstanceStore
 from kube_app_provisioner.routers import wordpress as wp_router
 from kube_app_provisioner.routers import odoo as odoo_router
-from kube_app_provisioner.services import wordpress as wp_service
-from kube_app_provisioner.services import odoo as odoo_service
+from kube_app_provisioner.services.apps import wordpress as wp_service
+from kube_app_provisioner.services.apps import odoo as odoo_service
+from kube_app_provisioner.utils import commands
 
 
 def setup_isolated_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> InstanceStore:
@@ -39,9 +40,8 @@ def setup_isolated_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Ins
     monkeypatch.setattr(wp_router, "store", test_store, raising=False)
     monkeypatch.setattr(odoo_router, "store", test_store, raising=False)
 
-    # run_script in den Services durch einen Dummy ersetzen (kein echtes Skript-Call)
-    monkeypatch.setattr(wp_service, "run_script", lambda *a, **k: "", raising=False)
-    monkeypatch.setattr(odoo_service, "run_script", lambda *a, **k: "", raising=False)
+    # run_script durch Dummy ersetzen (kein echtes Skript-Call)
+    monkeypatch.setattr(commands, "run_script", lambda *a, **k: "", raising=False)
 
     return test_store
 

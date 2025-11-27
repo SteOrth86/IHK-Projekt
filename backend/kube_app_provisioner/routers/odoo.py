@@ -7,16 +7,16 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field, field_validator
 
 from kube_app_provisioner.auth import verify_api_key
-from kube_app_provisioner.http_errors import http_404, http_500, map_service_error
+from kube_app_provisioner.common.http_errors import http_404, http_500, map_service_error
 from kube_app_provisioner.schemas.errors import ErrorResponse
-from kube_app_provisioner.schemas.validators import validate_domain, validate_slug
-from kube_app_provisioner.services.odoo import (
+from kube_app_provisioner.common.validators import validate_domain, validate_slug
+from kube_app_provisioner.services.apps.odoo import (
     create_odoo_instance as create_odoo_service,
     delete_odoo_instance as delete_odoo_service,
     resume_odoo_instance,
     suspend_odoo_instance,
 )
-from kube_app_provisioner.storage import Instance, store
+from kube_app_provisioner.core.storage import Instance, store
 
 
 router = APIRouter(prefix="/instances/odoo", tags=["odoo"])

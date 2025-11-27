@@ -1,9 +1,9 @@
 # services/orders.py
 
-from kube_app_provisioner.audit import audit_event
-from kube_app_provisioner.models import Order
-from kube_app_provisioner.services.instance_utils import now_iso
-from kube_app_provisioner.storage import Instance, store
+from kube_app_provisioner.common.audit import audit_event
+from kube_app_provisioner.core.models import Order
+from kube_app_provisioner.services.core.instance_utils import now_iso
+from kube_app_provisioner.core.storage import Instance, store
 
 
 def provision_wordpress_for_order(order: Order) -> Instance:

@@ -5,10 +5,10 @@ from typing import Any, Mapping
 import stripe
 from fastapi import APIRouter, Header, HTTPException, Request, status
 
-from kube_app_provisioner import config
-from kube_app_provisioner.audit import audit_event
-from kube_app_provisioner.services import orders as orders_service
-from kube_app_provisioner.storage import orders_store
+from kube_app_provisioner.core import config
+from kube_app_provisioner.common.audit import audit_event
+from kube_app_provisioner.services.apps import orders as orders_service
+from kube_app_provisioner.core.storage import orders_store
 
 router = APIRouter()
 

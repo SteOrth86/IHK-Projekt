@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from kube_app_provisioner.storage import InstanceStore
+from kube_app_provisioner.core.storage import InstanceStore
 
 
 def now_iso() -> str:
