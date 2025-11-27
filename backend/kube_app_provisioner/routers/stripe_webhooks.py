@@ -8,7 +8,10 @@ from fastapi import APIRouter, Header, HTTPException, Request, status
 from kube_app_provisioner.core import config
 from kube_app_provisioner.common.audit import audit_event
 from kube_app_provisioner.services.apps import orders as orders_service
-from kube_app_provisioner.core.storage import orders_store
+from kube_app_provisioner.services.apps.wordpress import create_wordpress_instance
+from kube_app_provisioner.services.apps.odoo import create_odoo_instance
+from kube_app_provisioner.core.storage import orders_store, store
+from kube_app_provisioner.utils.commands import ScriptError
 
 router = APIRouter()
 
@@ -69,12 +72,27 @@ def process_stripe_event(event: Mapping[str, Any]) -> None:
             stripe_payment_intent=order.stripe_payment_intent,
         )
 
-    # Nur WordPress-Orders werden automatisch provisioniert
-    if order.product_type != "wordpress":
+    # Provisionierung je nach Produkt
+    try:
+        if order.product_type == "wordpress":
+            instance = create_wordpress_instance(
+                slug=order.instance_slug,
+                domain=order.domain,
+                store=store,
+            )
+        elif order.product_type == "odoo":
+            instance = create_odoo_instance(
+                slug=order.instance_slug,
+                domain=order.domain,
+                store=store,
+            )
+        else:
+            return
+    except (ValueError, ScriptError):
+        order.status = "error"
+        order.updated_at = datetime.now(UTC)
+        orders_store.update(order)
         return
-
-    # Provisionierung anstoßen (aktueller Stand: nur InstanceStore-Eintrag)
-    instance = orders_service.provision_wordpress_for_order(order)
 
     previous_status = order.status
 
