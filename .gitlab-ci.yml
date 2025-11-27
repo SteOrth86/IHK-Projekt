@@ -4,15 +4,26 @@ stages:
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
+cache:
+  paths:
+    - .cache/pip
+
 test_backend:
   stage: test
   image: python:3.12-slim
   before_script:
     - python --version
     - pip install --upgrade pip
-    # Anforderungen für das Backend installieren
+    # Backend-Requirements aus dem Unterordner installieren
+    - pip install --upgrade pip
     - pip install -r backend/requirements.txt
   script:
     - cd backend
-    - pytest
-
+    - mkdir -p reports
+    - pytest --junitxml=reports/junit.xml
+  artifacts:
+    when: always
+    paths:
+      - backend/reports/
+    reports:
+      junit: backend/reports/junit.xml
