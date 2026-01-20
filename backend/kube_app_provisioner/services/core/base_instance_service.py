@@ -17,8 +17,8 @@ class UnsupportedOperationError(Exception):
 
 class BaseInstanceService:
     """
-    Gemeinsamer Lifecycle f\u00fcr Instanz-Typen (create/delete/suspend/resume).
-    Konkrete Services liefern nur noch ihre Skripte und k\u00f6nnen Hooks setzen.
+    Gemeinsamer Lifecycle für Instanz-Typen (create/delete/suspend/resume).
+    Konkrete Services liefern nur noch ihre Skripte und können Hooks setzen.
     """
 
     def __init__(

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-echo ">>> Starte Minikube-Cluster für das IHK-Projekt..."
+echo ">>> Starte Minikube-Cluster für das WordPress-Projekt..."
 
 # Minikube starten (Parameter wie im Projekt benutzt)
 minikube start --cpus=4 --memory=3072 --disk-size=40g

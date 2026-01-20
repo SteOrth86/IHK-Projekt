@@ -1,0 +1,38 @@
+[
+  {
+    "id": "wp-kunde-domain-ok",
+    "type": "wordpress",
+    "namespace": "wp-kunde-domain-ok",
+    "domain": "kunde-domain-ok.example.test",
+    "created_at": "2025-11-25T15:05:28.937225+00:00",
+    "updated_at": "2025-11-25T15:05:35.006800+00:00",
+    "status": "running"
+  },
+  {
+    "id": "odoo-domain-ok",
+    "type": "odoo",
+    "namespace": "odoo-domain-ok",
+    "domain": "domain-ok.local",
+    "created_at": "2025-11-25T15:09:19.318878+00:00",
+    "updated_at": "2025-11-25T15:09:24.898398+00:00",
+    "status": "running"
+  },
+  {
+    "id": "wp-kunde-uniquetest-wp",
+    "type": "wordpress",
+    "namespace": "wp-kunde-uniquetest-wp",
+    "domain": "unique-domain.example.test",
+    "created_at": "2025-11-25T15:18:56.010362+00:00",
+    "updated_at": "2025-11-25T15:19:02.107806+00:00",
+    "status": "running"
+  },
+  {
+    "id": "odoo-dup1",
+    "type": "odoo",
+    "namespace": "odoo-dup1",
+    "domain": "dup-domain.test",
+    "created_at": "2025-11-25T15:27:57.806777+00:00",
+    "updated_at": "2025-11-25T15:28:04.130009+00:00",
+    "status": "running"
+  }
+]

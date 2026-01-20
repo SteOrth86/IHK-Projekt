@@ -1,0 +1,11 @@
+[
+  {
+    "id": "odoo-kunde-odoo-test",
+    "type": "odoo",
+    "namespace": "odoo-kunde-odoo-test",
+    "domain": "kunde-odoo-test.local",
+    "created_at": "2025-11-25T11:22:31.594610+00:00",
+    "updated_at": "2025-11-25T14:01:02.258225+00:00",
+    "status": "error"
+  }
+]

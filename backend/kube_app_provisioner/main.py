@@ -3,6 +3,14 @@ from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
 
+app = FastAPI(
+    title="TrendTec Provisioning API",
+    version="1.0",
+    description="API zur automatisierten Bereitstellung und Verwaltung von WordPress-Instanzen.",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
 from kube_app_provisioner.common.request_id import request_id_var
 from kube_app_provisioner.common.request_id_middleware import RequestIdMiddleware
 from kube_app_provisioner.core.storage import Instance, store
@@ -48,10 +56,6 @@ logging.getLogger().addFilter(RequestIdFilter())
 logger = logging.getLogger("kube_app_provisioner")
 
 
-app = FastAPI(
-    title="IHK-Projekt Backend",
-    version="0.1.0",
-)
 
 # request_id-Middleware aktivieren
 app.add_middleware(RequestIdMiddleware)
@@ -92,7 +96,6 @@ def get_instance_by_id(instance_id: str):
     instance = store.get(instance_id)
 
     if instance is None:
-        # Später können wir das auf ErrorResponse umstellen
         raise HTTPException(
             status_code=404,
             detail=f"Instance '{instance_id}' not found",

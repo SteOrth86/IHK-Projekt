@@ -29,7 +29,7 @@ class Order(BaseModel):
 class OrderCreate(BaseModel):
     """
     Payload für POST /orders
-    – das, was der Client beim Bestellen schickt.
+    das, was der Client beim Bestellen schickt.
     """
     product_type: ProductType
     instance_slug: str

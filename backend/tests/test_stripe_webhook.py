@@ -30,7 +30,7 @@ def test_checkout_session_completed_provisions_wordpress_order(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    # Ausgangszustand: eine pending-Order
+
     order = Order(
         product_type="wordpress",
         instance_slug="wp-stripe-test",
